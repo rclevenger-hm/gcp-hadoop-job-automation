@@ -24,3 +24,17 @@ def digest(value):
 
 def canonical(value):
     return json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=False)
+
+
+def body(raw):
+    if not isinstance(raw, bytes):
+        raise invalid('A JSON body is required')
+    if len(raw) > MAX_BODY:
+        raise ApiError(413, 'BODY_TOO_LARGE', 'Body exceeds 64 KiB')
+    try:
+        result = json.loads(raw.decode('utf-8'), parse_constant=lambda _: (_ for _ in ()).throw(ValueError()))
+    except (ValueError, UnicodeError) as exc:
+        raise invalid('Body must be valid UTF-8 JSON') from exc
+    if not isinstance(result, dict):
+        raise invalid('Body must be a JSON object')
+    return result
