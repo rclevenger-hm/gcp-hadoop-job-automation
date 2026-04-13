@@ -28,3 +28,15 @@ def load_profiles(raw):
                 if uri.scheme not in schemes or (uri.scheme == 'gs' and not re.fullmatch(r'[a-z0-9][a-z0-9._-]{1,220}[a-z0-9]', uri.netloc)) or any(x in {'.', '..'} for x in uri.path.split('/')):
                     raise ValueError(f'Invalid {field}')
     return profiles
+
+
+def settings():
+    return {
+        'profiles': load_profiles(os.environ['CLUSTER_PROFILES']),
+        'project': os.environ['GCP_PROJECT_ID'], 'region': os.environ['DATAPROC_REGION'],
+        'database': os.environ['FIRESTORE_DATABASE'], 'topic': os.environ['JOB_TOPIC'],
+        'prefix': os.environ['SERVICE_NAME'],
+        'daily_limit': int(os.environ.get('DAILY_JOB_LIMIT', '100')),
+        'rate_limit': int(os.environ.get('REQUESTS_PER_MINUTE', '60')),
+        'retention': int(os.environ.get('RETENTION_DAYS', '30')),
+    }
