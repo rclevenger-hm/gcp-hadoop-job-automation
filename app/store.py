@@ -27,3 +27,6 @@ class Store:
         if self.transaction_runner:
             return self.transaction_runner(callback)
         return firestore.transactional(callback)(self.db.transaction(max_attempts=8))
+
+    def now(self):
+        return int(self.clock())
