@@ -22,3 +22,8 @@ class Store:
         self.transaction_runner = transaction_runner
         if not all(isinstance(v, int) and v > 0 for v in [daily_limit, rate_limit, retention]):
             raise ValueError('Limits must be positive integers')
+
+    def transaction(self, callback):
+        if self.transaction_runner:
+            return self.transaction_runner(callback)
+        return firestore.transactional(callback)(self.db.transaction(max_attempts=8))
