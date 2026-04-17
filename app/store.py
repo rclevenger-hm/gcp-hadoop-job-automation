@@ -33,3 +33,6 @@ class Store:
 
     def date(self):
         return datetime.fromtimestamp(self.now(), timezone.utc).strftime('%Y-%m-%d')
+
+    def ref(self, tenant, job_id):
+        return self.items.document(digest(f'{tenant}:{job_id}'))
