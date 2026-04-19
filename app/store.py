@@ -45,3 +45,7 @@ class Store:
         if item and item.get('expires_at', self.now() + 1) > self.now():
             return item
         return None
+
+    def enqueue(self, job):
+        data = canonical({'tenant': job['tenant'], 'job_id': job['job_id']}).encode()
+        self.publisher.publish(self.topic, data=data, retry=Retry(deadline=8)).result(timeout=10)
