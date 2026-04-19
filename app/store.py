@@ -39,3 +39,9 @@ class Store:
 
     def counter(self, tenant, period):
         return self.items.document(digest(f'counter:{tenant}:{period}'))
+
+    def get(self, tenant, job_id):
+        item = self.ref(tenant, job_id).get(timeout=8).to_dict()
+        if item and item.get('expires_at', self.now() + 1) > self.now():
+            return item
+        return None
