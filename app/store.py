@@ -36,3 +36,6 @@ class Store:
 
     def ref(self, tenant, job_id):
         return self.items.document(digest(f'{tenant}:{job_id}'))
+
+    def counter(self, tenant, period):
+        return self.items.document(digest(f'counter:{tenant}:{period}'))
