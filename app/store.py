@@ -60,3 +60,27 @@ class Store:
             job.pop('expiresOn', None)
             job['active_shard'] = job['job_id'][0]
         return job
+
+    def create(self, tenant, job_id, request, profile, prefix):
+        fingerprint, submission_id = digest(canonical(request)), str(uuid.uuid4())
+        job = self.decorate({'tenant': tenant, 'kind': 'job', 'job_id': job_id, 'request': request, 'profile': profile,
+                             'fingerprint': fingerprint, 'submission_id': submission_id,
+                             'dataproc_job_id': f'{prefix}-{job_id[:16]}-{submission_id.replace("-", "")}',
+                             'status': 'QUEUED', 'version': 1, 'attempts': 0,
+                             'created_at': self.now(), 'updated_at': self.now(), 'next_check': self.now() + 120})
+        ref, usage_ref = self.ref(tenant, job_id), self.counter(tenant, self.date())
+        def admit(tx):
+            existing = ref.get(transaction=tx).to_dict()
+            usage = usage_ref.get(transaction=tx).to_dict() or {}
+            if existing:
+                if existing.get('expires_at', self.now() + 1) <= self.now():
+                    raise ApiError(409, 'EXPIRED_KEY', 'Use a fresh idempotency key')
+                if existing['fingerprint'] != fingerprint:
+                    raise ApiError(409, 'IDEMPOTENCY_CONFLICT', 'Key already used with different job inputs')
+                return existing, False
+            if usage.get('units', 0) >= self.daily_limit:
+                raise ApiError(429, 'DAILY_LIMIT', 'Daily job allowance exhausted')
+            tx.create(ref, job)
+            tx.set(usage_ref, {'units': usage.get('units', 0) + 1, 'expiresOn': expires(self.now() + 3 * 86400)})
+            return job, True
+        return self.transaction(admit)
