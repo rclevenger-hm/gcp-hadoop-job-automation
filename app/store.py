@@ -49,3 +49,14 @@ class Store:
     def enqueue(self, job):
         data = canonical({'tenant': job['tenant'], 'job_id': job['job_id']}).encode()
         self.publisher.publish(self.topic, data=data, retry=Retry(deadline=8)).result(timeout=10)
+
+    def decorate(self, job):
+        if job['status'] in TERMINAL:
+            job.pop('active_shard', None)
+            job['expires_at'] = self.now() + self.retention * 86400
+            job['expiresOn'] = expires(job['expires_at'])
+        else:
+            job.pop('expires_at', None)
+            job.pop('expiresOn', None)
+            job['active_shard'] = job['job_id'][0]
+        return job
