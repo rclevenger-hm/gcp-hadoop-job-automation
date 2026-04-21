@@ -84,3 +84,17 @@ class Store:
             tx.set(usage_ref, {'units': usage.get('units', 0) + 1, 'expiresOn': expires(self.now() + 3 * 86400)})
             return job, True
         return self.transaction(admit)
+
+    def replace(self, job, **changes):
+        ref = self.ref(job['tenant'], job['job_id'])
+        updated = self.decorate({**job, **changes, 'version': job['version'] + 1, 'updated_at': self.now()})
+        def compare(tx):
+            current = ref.get(transaction=tx).to_dict()
+            if not current or current['version'] != job['version'] or current.get('expires_at', self.now() + 1) <= self.now():
+                return None
+            tx.set(ref, updated)
+            return updated
+        result = self.transaction(compare)
+        if result and result['status'] != job['status']:
+            print(json.dumps({'event': 'job_state', 'job_id': job['job_id'], 'status': result['status']}), flush=True)
+        return result
