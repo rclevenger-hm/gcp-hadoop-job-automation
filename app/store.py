@@ -98,3 +98,12 @@ class Store:
         if result and result['status'] != job['status']:
             print(json.dumps({'event': 'job_state', 'job_id': job['job_id'], 'status': result['status']}), flush=True)
         return result
+
+    def request_limit(self, tenant):
+        ref = self.counter(tenant, f'rate:{self.now() // 60}')
+        def increment(tx):
+            old = ref.get(transaction=tx).to_dict() or {}
+            if old.get('units', 0) >= self.rate_limit:
+                raise ApiError(429, 'RATE_LIMIT', 'Request allowance exhausted; retry in one minute')
+            tx.set(ref, {'units': old.get('units', 0) + 1, 'expiresOn': expires(self.now() + 120)})
+        self.transaction(increment)
