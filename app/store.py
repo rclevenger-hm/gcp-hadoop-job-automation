@@ -107,3 +107,7 @@ class Store:
                 raise ApiError(429, 'RATE_LIMIT', 'Request allowance exhausted; retry in one minute')
             tx.set(ref, {'units': old.get('units', 0) + 1, 'expiresOn': expires(self.now() + 120)})
         self.transaction(increment)
+
+    def usage(self, tenant):
+        item = self.counter(tenant, self.date()).get(timeout=8).to_dict() or {}
+        return {'date': self.date(), 'jobs': item.get('units', 0), 'limit': self.daily_limit}
