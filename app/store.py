@@ -111,3 +111,29 @@ class Store:
     def usage(self, tenant):
         item = self.counter(tenant, self.date()).get(timeout=8).to_dict() or {}
         return {'date': self.date(), 'jobs': item.get('units', 0), 'limit': self.daily_limit}
+
+    def history(self, tenant, limit=20, cursor=None, status=None):
+        signature = digest(canonical({'tenant': tenant, 'status': status}))
+        query = self.items.where(filter=FieldFilter('tenant', '==', tenant)).where(filter=FieldFilter('kind', '==', 'job'))
+        if status:
+            query = query.where(filter=FieldFilter('status', '==', status))
+        query = query.order_by('created_at', direction='DESCENDING').order_by('__name__', direction='DESCENDING')
+        if cursor:
+            try:
+                if len(cursor) > 2048:
+                    raise ValueError()
+                decoded = json.loads(base64.b64decode(cursor, altchars=b'-_', validate=True))
+                if decoded['signature'] != signature or not isinstance(decoded['created_at'], int):
+                    raise ValueError()
+                query = query.start_after({'created_at': decoded['created_at'], '__name__': self.items.document(identifier(decoded['id']))})
+            except (ValueError, KeyError, TypeError, ApiError) as exc:
+                raise invalid('Cursor does not match this query') from exc
+        rows = list(query.limit(limit + 1).stream(timeout=8))
+        scanned = rows[:limit]
+        jobs = [row.to_dict() for row in scanned]
+        jobs = [j for j in jobs if j.get('expires_at', self.now() + 1) > self.now()]
+        token = None
+        if len(rows) > limit:
+            last = scanned[-1]
+            token = base64.urlsafe_b64encode(canonical({'signature': signature, 'created_at': last.to_dict()['created_at'], 'id': last.id}).encode()).decode()
+        return jobs, token
