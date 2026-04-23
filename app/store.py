@@ -137,3 +137,7 @@ class Store:
             last = scanned[-1]
             token = base64.urlsafe_b64encode(canonical({'signature': signature, 'created_at': last.to_dict()['created_at'], 'id': last.id}).encode()).decode()
         return jobs, token
+
+    def due(self, shard, limit=25):
+        query = self.items.where(filter=FieldFilter('active_shard', '==', shard)).where(filter=FieldFilter('next_check', '<=', self.now()))
+        return [row.to_dict() for row in query.order_by('next_check').order_by('__name__').limit(limit).stream(timeout=8)]
