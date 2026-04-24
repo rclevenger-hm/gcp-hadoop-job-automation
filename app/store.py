@@ -141,3 +141,9 @@ class Store:
     def due(self, shard, limit=25):
         query = self.items.where(filter=FieldFilter('active_shard', '==', shard)).where(filter=FieldFilter('next_check', '<=', self.now()))
         return [row.to_dict() for row in query.order_by('next_check').order_by('__name__').limit(limit).stream(timeout=8)]
+
+    def claim_poll(self, tenant, job_id):
+        job = self.get(tenant, job_id)
+        if not job or job['status'] in TERMINAL or job['next_check'] > self.now():
+            return None
+        return self.replace(job, next_check=self.now() + 120)
