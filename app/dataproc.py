@@ -17,3 +17,6 @@ class RemoteMismatch(Exception):
 class Dataproc:
     def __init__(self, client, storage, project, region):
         self.client, self.storage, self.project, self.region = client, storage, project, region
+
+    def locator(self, job):
+        return {'project_id': self.project, 'region': self.region, 'job_id': job['dataproc_job_id']}
