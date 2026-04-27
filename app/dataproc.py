@@ -20,3 +20,9 @@ class Dataproc:
 
     def locator(self, job):
         return {'project_id': self.project, 'region': self.region, 'job_id': job['dataproc_job_id']}
+
+    @staticmethod
+    def hadoop(job):
+        r = job['request']
+        return {'main_class': r['job_class'], 'jar_file_uris': [r['jar_path']],
+                'args': [r['input_path'], r['output_path'], *r['arguments']]}
