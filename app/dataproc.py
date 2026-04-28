@@ -51,3 +51,9 @@ class Dataproc:
         except AlreadyExists:
             remote = self.client.get_job(request=self.locator(job), retry=None, timeout=10)
         return self.verify(job, remote)
+
+    def get(self, job):
+        try:
+            return self.verify(job, self.client.get_job(request=self.locator(job), retry=None, timeout=10))
+        except NotFound:
+            return None
