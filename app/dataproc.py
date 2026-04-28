@@ -38,3 +38,16 @@ class Dataproc:
                 or not remote.job_uuid or (job.get('remote_uuid') and remote.job_uuid != job['remote_uuid'])):
             raise RemoteMismatch('Remote job identity mismatch')
         return remote
+
+    def submit(self, job):
+        request = {'project_id': self.project, 'region': self.region, 'request_id': job['submission_id'],
+                   'job': {'reference': {'project_id': self.project, 'job_id': job['dataproc_job_id']},
+                           'placement': {'cluster_name': job['profile']['cluster_name']},
+                           'hadoop_job': self.hadoop(job), 'labels': {'submission': job['submission_id']}}}
+        # No restartable-job scheduling: each admitted Hadoop job is submitted once logically.
+        # App retries reuse the exact native request ID and job ID, including after transport errors.
+        try:
+            remote = self.client.submit_job(request=request, retry=None, timeout=10)
+        except AlreadyExists:
+            remote = self.client.get_job(request=self.locator(job), retry=None, timeout=10)
+        return self.verify(job, remote)
