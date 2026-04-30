@@ -64,3 +64,12 @@ class Dataproc:
         if name not in STATE_MAP:
             raise RuntimeError('Unrecognized Dataproc state')
         return STATE_MAP[name]
+
+    def cancel(self, job):
+        # Fence a deleted/reused job ID immediately before cancellation.
+        remote = self.get(job)
+        if remote is None:
+            raise RemoteMismatch('Remote job disappeared before cancellation')
+        result = self.client.cancel_job(request=self.locator(job), retry=None, timeout=10)
+        self.verify(job, result)
+        return True
