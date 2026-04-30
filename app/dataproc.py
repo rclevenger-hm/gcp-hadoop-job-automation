@@ -57,3 +57,10 @@ class Dataproc:
             return self.verify(job, self.client.get_job(request=self.locator(job), retry=None, timeout=10))
         except NotFound:
             return None
+
+    @staticmethod
+    def state(remote):
+        name = dataproc_v1.JobStatus.State(remote.status.state).name
+        if name not in STATE_MAP:
+            raise RuntimeError('Unrecognized Dataproc state')
+        return STATE_MAP[name]
