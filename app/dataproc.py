@@ -73,3 +73,30 @@ class Dataproc:
         result = self.client.cancel_job(request=self.locator(job), retry=None, timeout=10)
         self.verify(job, result)
         return True
+
+    def logs(self, job, stream='driver', limit=16384, segment='0', offset='0'):
+        if stream != 'driver':
+            raise invalid('Only the Dataproc driver stream is available')
+        limit = integer(limit, 16384, 65536)
+        try:
+            if not str(segment).isdigit() or not str(offset).isdigit() or len(str(segment)) > 6 or len(str(offset)) > 9:
+                raise ValueError()
+            segment, offset = int(segment), int(offset)
+            if not 0 <= segment <= 999999 or not 0 <= offset <= 104857600:
+                raise ValueError()
+        except (ValueError, TypeError) as exc:
+            raise invalid('Invalid driver segment or byte offset') from exc
+        remote = self.get(job)
+        if remote is None or not remote.driver_output_resource_uri:
+            raise ApiError(404, 'LOG_NOT_READY', 'Driver output is not available yet')
+        uri = urlsplit(allowed_path(remote.driver_output_resource_uri, job['profile']['log_prefixes'], 'driver output'))
+        blob = self.storage.bucket(uri.netloc).blob(f'{uri.path.lstrip("/")}.{segment:09d}')
+        try:
+            raw = blob.download_as_bytes(start=offset, end=offset + limit, raw_download=True, retry=None, timeout=8)
+        except NotFound as exc:
+            raise ApiError(404, 'LOG_NOT_READY', 'Driver output segment has not been uploaded') from exc
+        except RequestRangeNotSatisfiable:
+            raw = b''
+        return {'stream': 'driver', 'segment': segment, 'offset': offset, 'text': raw[:limit].decode('utf-8', errors='replace'),
+                'truncated': len(raw) > limit, 'next_offset': offset + limit if len(raw) > limit else None,
+                'note': 'Output can lag execution. At segment end, retry later or request the next segment.'}
