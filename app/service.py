@@ -37,3 +37,18 @@ class Service:
             if updated:
                 return public(updated)
         raise ApiError(409, 'STATE_CHANGED', 'Job changed concurrently; retry the request')
+
+    def attach(self, tenant, job_id, remote=None, reason='SUBMISSION_OUTCOME_UNKNOWN'):
+        for _ in range(5):
+            job = self.store.get(tenant, job_id)
+            if not job or job['status'] in TERMINAL or job.get('remote_uuid'):
+                return
+            changes = {'next_check': self.store.now() + 120}
+            if remote is not None:
+                self.dataproc.verify(job, remote)
+                changes.update(remote_uuid=remote.job_uuid, status='CANCEL_REQUESTED' if job.get('cancel_requested') else 'SUBMITTED', reason='')
+            else:
+                changes.update(status='CANCEL_REQUESTED' if job.get('cancel_requested') else 'SUBMISSION_UNKNOWN', reason=reason)
+            if self.store.replace(job, **changes):
+                return
+        raise RuntimeError('Concurrent updates prevented attachment; reconciliation will retry')
