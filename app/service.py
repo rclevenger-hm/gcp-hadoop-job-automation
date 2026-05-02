@@ -10,3 +10,11 @@ def public(job):
 class Service:
     def __init__(self, store, dataproc, profiles, prefix):
         self.store, self.dataproc, self.profiles, self.prefix = store, dataproc, profiles, prefix
+
+    def submit(self, caller, key, payload):
+        request = job_request(payload, self.profiles, caller)
+        job_id = key_id(key, caller.tenant)
+        job, created = self.store.create(caller.tenant, job_id, request, self.profiles[request['profile']], self.prefix)
+        if job['status'] == 'QUEUED':
+            self.store.enqueue(job)
+        return public(job), created
