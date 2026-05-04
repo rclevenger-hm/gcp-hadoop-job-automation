@@ -58,3 +58,21 @@ class Service:
             return False
         self.store.replace(job, status='NEEDS_REVIEW' if job['attempts'] else 'FAILED', reason='ADMISSION_WINDOW_EXPIRED')
         return True
+
+    def process(self, message):
+        tenant, job_id = identifier(message.get('tenant')), identifier(message.get('job_id'))
+        job = self.store.get(tenant, job_id)
+        if not job or job['status'] != 'QUEUED' or self.expire_queued(job):
+            return
+        job = self.store.replace(job, status='SUBMITTING', submitted_at=self.store.now(), attempts=job['attempts'] + 1, next_check=self.store.now() + 120)
+        if not job:
+            return
+        try:
+            remote = self.dataproc.submit(job)
+        except RemoteMismatch:
+            self.review(tenant, job_id, 'REMOTE_IDENTITY_MISMATCH')
+            return
+        except Exception:
+            self.attach(tenant, job_id)
+            return
+        self.attach(tenant, job_id, remote)
