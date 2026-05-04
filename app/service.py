@@ -76,3 +76,12 @@ class Service:
             self.attach(tenant, job_id)
             return
         self.attach(tenant, job_id, remote)
+
+    def review(self, tenant, job_id, reason):
+        for _ in range(5):
+            job = self.store.get(tenant, job_id)
+            if not job or job['status'] in TERMINAL:
+                return
+            if self.store.replace(job, status='NEEDS_REVIEW', reason=reason):
+                return
+        raise RuntimeError('Concurrent updates prevented review marker')
