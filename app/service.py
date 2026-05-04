@@ -52,3 +52,9 @@ class Service:
             if self.store.replace(job, **changes):
                 return
         raise RuntimeError('Concurrent updates prevented attachment; reconciliation will retry')
+
+    def expire_queued(self, job):
+        if self.store.now() - job['created_at'] < 86400:
+            return False
+        self.store.replace(job, status='NEEDS_REVIEW' if job['attempts'] else 'FAILED', reason='ADMISSION_WINDOW_EXPIRED')
+        return True
