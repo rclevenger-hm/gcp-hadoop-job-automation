@@ -118,3 +118,20 @@ class Service:
             self.store.replace(job, **changes)
         except RemoteMismatch:
             self.review(tenant, job_id, 'REMOTE_IDENTITY_MISMATCH')
+
+    def reconcile(self, remaining_ms=lambda: 120000):
+        processed, failed = 0, 0
+        start = (self.store.now() // 60) % 16
+        for offset in range(16):
+            if remaining_ms() < 35000:
+                break
+            shard = format((start + offset) % 16, 'x')
+            for job in self.store.due(shard):
+                if remaining_ms() < 35000:
+                    return {'processed': processed, 'failed': failed}
+                try:
+                    self.reconcile_one(job['tenant'], job['job_id'])
+                    processed += 1
+                except Exception:
+                    failed += 1
+        return {'processed': processed, 'failed': failed}
