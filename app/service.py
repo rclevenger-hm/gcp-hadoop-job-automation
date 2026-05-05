@@ -85,3 +85,36 @@ class Service:
             if self.store.replace(job, status='NEEDS_REVIEW', reason=reason):
                 return
         raise RuntimeError('Concurrent updates prevented review marker')
+
+    def reconcile_one(self, tenant, job_id):
+        job = self.store.claim_poll(tenant, job_id)
+        if not job:
+            return
+        if job['status'] == 'QUEUED':
+            if not self.expire_queued(job):
+                self.store.enqueue(job)
+            return
+        if not job.get('remote_uuid') and self.store.now() - job.get('submitted_at', job['created_at']) < 120:
+            return
+        try:
+            remote = self.dataproc.get(job)
+            if remote is None:
+                if job.get('remote_uuid'):
+                    self.review(tenant, job_id, 'REMOTE_JOB_MISSING')
+                elif job['attempts'] >= 5 or self.store.now() - job['created_at'] >= 86400:
+                    self.review(tenant, job_id, 'NO_REMOTE_JOB_OUTCOME_UNKNOWN')
+                elif not job.get('cancel_requested'):
+                    updated = self.store.replace(job, status='QUEUED', reason='RETRY_WITH_SAME_NATIVE_IDS', next_check=self.store.now() + 120)
+                    if updated:
+                        self.store.enqueue(updated)
+                return
+            if not job.get('remote_uuid'):
+                self.attach(tenant, job_id, remote)
+                job = self.store.get(tenant, job_id)
+            state = self.dataproc.state(remote)
+            changes = {'status': state}
+            if job.get('cancel_requested') and state not in TERMINAL:
+                changes.update(status='CANCEL_REQUESTED', cancel_accepted=self.dataproc.cancel(job))
+            self.store.replace(job, **changes)
+        except RemoteMismatch:
+            self.review(tenant, job_id, 'REMOTE_IDENTITY_MISMATCH')
