@@ -26,3 +26,8 @@ def runtime():
         client = dataproc_v1.JobControllerClient(client_options={'api_endpoint': f"{cfg['region']}-dataproc.googleapis.com:443"})
         _SERVICE = Service(store, Dataproc(client, storage.Client(project=cfg['project']), cfg['project'], cfg['region']), cfg['profiles'], cfg['prefix'])
     return _SERVICE
+
+
+def response(status, value, request_id):
+    return json.dumps(value), status, {'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Request-Id': request_id,
+                                     **({'Retry-After': '60'} if status == 429 else {})}
