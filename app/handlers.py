@@ -81,3 +81,22 @@ def api_handler(request):
         return response(status, {'code': 'SERVICE_UNAVAILABLE', 'error': 'Service temporarily unavailable', 'request_id': request_id}, request_id)
     finally:
         print(json.dumps({'event': 'api_request', 'request_id': request_id, 'status': status}), flush=True)
+
+
+def worker_handler(request):
+    # Cloud Run IAM permits only the dedicated Pub/Sub push identity.
+    try:
+        if request.method != 'POST':
+            return '', 405
+        envelope = body(request.stream.read(8193))
+        encoded = envelope['message']['data']
+        if not isinstance(encoded, str) or len(encoded) > 1024:
+            raise ValueError('Invalid queue message')
+        message = json.loads(base64.b64decode(encoded, validate=True))
+        if not isinstance(message, dict) or set(message) != {'tenant', 'job_id'}:
+            raise ValueError('Invalid queue message')
+        runtime().process(message)
+        return '', 204
+    except Exception as exc:
+        print(json.dumps({'event': 'worker_error', 'error_type': type(exc).__name__}), flush=True)
+        return '', 503
