@@ -100,3 +100,13 @@ def worker_handler(request):
     except Exception as exc:
         print(json.dumps({'event': 'worker_error', 'error_type': type(exc).__name__}), flush=True)
         return '', 503
+
+
+def reconcile_handler(request):
+    # Cloud Run IAM permits only the dedicated scheduler identity.
+    if request.method != 'POST':
+        return '', 405
+    started = time.monotonic()
+    result = runtime().reconcile(lambda: max(0, int((110 - (time.monotonic() - started)) * 1000)))
+    print(json.dumps({'event': 'reconcile_complete', **result}), flush=True)
+    return json.dumps(result), 503 if result['failed'] else 200, {'Content-Type': 'application/json'}
