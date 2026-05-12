@@ -8,3 +8,8 @@ class Snapshot:
 
     def to_dict(self):
         return copy.deepcopy(self.data)
+
+
+class Reference:
+    def __init__(self, db, id):
+        self.db, self.id = db, id
