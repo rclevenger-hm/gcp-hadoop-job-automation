@@ -16,3 +16,8 @@ class Reference:
 
     def get(self, **kwargs):
         return Snapshot(self.id, self.db.data.get(self.id))
+
+
+class Query:
+    def __init__(self, db, filters=(), orders=(), maximum=10000, cursor=None):
+        self.db, self.filters, self.orders, self.maximum, self.cursor = db, filters, orders, maximum, cursor
