@@ -13,3 +13,6 @@ class Snapshot:
 class Reference:
     def __init__(self, db, id):
         self.db, self.id = db, id
+
+    def get(self, **kwargs):
+        return Snapshot(self.id, self.db.data.get(self.id))
