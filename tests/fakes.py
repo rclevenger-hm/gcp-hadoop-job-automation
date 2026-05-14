@@ -21,3 +21,6 @@ class Reference:
 class Query:
     def __init__(self, db, filters=(), orders=(), maximum=10000, cursor=None):
         self.db, self.filters, self.orders, self.maximum, self.cursor = db, filters, orders, maximum, cursor
+
+    def document(self, id):
+        return Reference(self.db, id)
