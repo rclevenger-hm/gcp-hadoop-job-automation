@@ -24,3 +24,6 @@ class Query:
 
     def document(self, id):
         return Reference(self.db, id)
+
+    def where(self, *, filter):
+        return Query(self.db, (*self.filters, filter), self.orders, self.maximum, self.cursor)
