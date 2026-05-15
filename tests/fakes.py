@@ -27,3 +27,6 @@ class Query:
 
     def where(self, *, filter):
         return Query(self.db, (*self.filters, filter), self.orders, self.maximum, self.cursor)
+
+    def order_by(self, name, direction='ASCENDING'):
+        return Query(self.db, self.filters, (*self.orders, (name, direction)), self.maximum, self.cursor)
