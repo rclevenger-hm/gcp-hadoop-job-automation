@@ -33,3 +33,6 @@ class Query:
 
     def limit(self, count):
         return Query(self.db, self.filters, self.orders, count, self.cursor)
+
+    def start_after(self, cursor):
+        return Query(self.db, self.filters, self.orders, self.maximum, cursor)
