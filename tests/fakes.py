@@ -30,3 +30,6 @@ class Query:
 
     def order_by(self, name, direction='ASCENDING'):
         return Query(self.db, self.filters, (*self.orders, (name, direction)), self.maximum, self.cursor)
+
+    def limit(self, count):
+        return Query(self.db, self.filters, self.orders, count, self.cursor)
