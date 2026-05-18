@@ -36,3 +36,14 @@ class Query:
 
     def start_after(self, cursor):
         return Query(self.db, self.filters, self.orders, self.maximum, cursor)
+
+    def stream(self, **kwargs):
+        rows = list(self.db.data.items())
+        for f in self.filters:
+            rows = [(id, d) for id, d in rows if f.field_path in d and (d[f.field_path] == f.value if f.op_string == '==' else d[f.field_path] <= f.value)]
+        for field, direction in reversed(self.orders):
+            rows.sort(key=lambda r: r[0] if field == '__name__' else r[1][field], reverse=direction == 'DESCENDING')
+        if self.cursor:
+            key = (self.cursor['created_at'], self.cursor['__name__'].id)
+            rows = [(id, d) for id, d in rows if (d['created_at'], id) < key]
+        return [Snapshot(id, d) for id, d in rows[:self.maximum]]
