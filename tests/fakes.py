@@ -47,3 +47,8 @@ class Query:
             key = (self.cursor['created_at'], self.cursor['__name__'].id)
             rows = [(id, d) for id, d in rows if (d['created_at'], id) < key]
         return [Snapshot(id, d) for id, d in rows[:self.maximum]]
+
+
+class Transaction:
+    def __init__(self, db):
+        self.db, self.pending = db, []
