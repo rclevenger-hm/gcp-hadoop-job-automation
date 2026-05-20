@@ -55,3 +55,7 @@ class Transaction:
 
     def set(self, ref, data):
         self.pending.append((ref.id, copy.deepcopy(data)))
+
+    def create(self, ref, data):
+        assert ref.id not in self.db.data
+        self.set(ref, data)
