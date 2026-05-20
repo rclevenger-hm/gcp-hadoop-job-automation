@@ -52,3 +52,6 @@ class Query:
 class Transaction:
     def __init__(self, db):
         self.db, self.pending = db, []
+
+    def set(self, ref, data):
+        self.pending.append((ref.id, copy.deepcopy(data)))
