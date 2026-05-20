@@ -59,3 +59,8 @@ class Transaction:
     def create(self, ref, data):
         assert ref.id not in self.db.data
         self.set(ref, data)
+
+
+class Database:
+    def __init__(self):
+        self.data, self.lock = {}, RLock()
