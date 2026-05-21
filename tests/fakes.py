@@ -64,3 +64,7 @@ class Transaction:
 class Database:
     def __init__(self):
         self.data, self.lock = {}, RLock()
+
+    def collection(self, name):
+        assert name == 'items'
+        return Query(self)
