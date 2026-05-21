@@ -68,3 +68,11 @@ class Database:
     def collection(self, name):
         assert name == 'items'
         return Query(self)
+
+    def run(self, callback):
+        with self.lock:
+            tx = Transaction(self)
+            result = callback(tx)
+            for id, value in tx.pending:
+                self.data[id] = value
+            return result
