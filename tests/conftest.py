@@ -20,3 +20,8 @@ OTHER = Identity('987654321', 'other@your-project-id.iam.gserviceaccount.com')
 @pytest.fixture
 def profiles():
     return load_profiles(open('examples/profiles.json').read())
+
+
+@pytest.fixture
+def payload():
+    return json.load(open('examples/job.json'))
