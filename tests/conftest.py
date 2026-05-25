@@ -25,3 +25,10 @@ def profiles():
 @pytest.fixture
 def payload():
     return json.load(open('examples/job.json'))
+
+
+def remote(job, state='RUNNING', uuid='remote-unique-id'):
+    return dataproc_v1.Job(reference={'project_id': 'your-project-id', 'job_id': job['dataproc_job_id']},
+                           placement={'cluster_name': job['profile']['cluster_name']}, labels={'submission': job['submission_id']},
+                           hadoop_job=Dataproc.hadoop(job), status={'state': state}, job_uuid=uuid,
+                           driver_output_resource_uri='gs://your-staging/google-cloud-dataproc-metainfo/cluster/jobs/job/driveroutput')
