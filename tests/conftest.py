@@ -32,3 +32,17 @@ def remote(job, state='RUNNING', uuid='remote-unique-id'):
                            placement={'cluster_name': job['profile']['cluster_name']}, labels={'submission': job['submission_id']},
                            hadoop_job=Dataproc.hadoop(job), status={'state': state}, job_uuid=uuid,
                            driver_output_resource_uri='gs://your-staging/google-cloud-dataproc-metainfo/cluster/jobs/job/driveroutput')
+
+
+@pytest.fixture
+def env(profiles):
+    db, publisher, client, storage = Database(), Mock(), Mock(), Mock()
+    clock = [1780315200]
+    store = Store(db, publisher, 'projects/your-project-id/topics/jobs', clock=lambda: clock[0], transaction_runner=db.run)
+    native = Dataproc(client, storage, 'your-project-id', 'us-central1')
+    dp = Mock(wraps=native)
+    dp.submit.side_effect = remote
+    dp.get.side_effect = remote
+    dp.cancel.return_value = True
+    service = Service(store, dp, copy.deepcopy(profiles), 'hadoop-dev')
+    return SimpleNamespace(store=store, service=service, dp=dp, native=native, client=client, storage=storage, clock=clock, db=db, publisher=publisher)
