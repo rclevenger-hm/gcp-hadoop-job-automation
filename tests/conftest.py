@@ -46,3 +46,8 @@ def env(profiles):
     dp.cancel.return_value = True
     service = Service(store, dp, copy.deepcopy(profiles), 'hadoop-dev')
     return SimpleNamespace(store=store, service=service, dp=dp, native=native, client=client, storage=storage, clock=clock, db=db, publisher=publisher)
+
+
+def create(env, payload, key='valid-key-123'):
+    value, _ = env.service.submit(CALLER, key, payload)
+    return env.store.get(CALLER.tenant, value['job_id'])
