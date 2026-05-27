@@ -51,3 +51,7 @@ def env(profiles):
 def create(env, payload, key='valid-key-123'):
     value, _ = env.service.submit(CALLER, key, payload)
     return env.store.get(CALLER.tenant, value['job_id'])
+
+
+def message(job):
+    return {'tenant': job['tenant'], 'job_id': job['job_id']}
