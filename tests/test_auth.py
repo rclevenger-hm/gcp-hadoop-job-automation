@@ -19,3 +19,8 @@ def signed():
     keys = Mock()
     keys.get_signing_key_from_jwt.return_value = SimpleNamespace(key=private.public_key())
     return private, claims, keys
+
+
+def invoke(signed):
+    private, claims, keys = signed
+    return authenticate('Bearer ' + jwt.encode(claims, private, algorithm='RS256'), 'https://service.example', {CALLER.email}, keys)
