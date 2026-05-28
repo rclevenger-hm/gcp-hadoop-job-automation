@@ -30,3 +30,11 @@ def test_valid_google_identity(signed):
     assert invoke(signed) == CALLER
     signed[1]['iss'] = 'accounts.google.com'
     assert invoke(signed).tenant == CALLER.tenant
+
+
+@pytest.mark.parametrize('field,value', [('iss', 'attacker'), ('aud', 'other'), ('exp', 0), ('iat', 9999999999), ('sub', 'email@example.com'), ('email_verified', False), ('email', 'other@example.com')])
+def test_wrong_claims_fail_closed(signed, field, value):
+    signed[1][field] = value
+    with pytest.raises(ApiError) as error:
+        invoke(signed)
+    assert error.value.status == 401
