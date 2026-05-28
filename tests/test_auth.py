@@ -24,3 +24,9 @@ def signed():
 def invoke(signed):
     private, claims, keys = signed
     return authenticate('Bearer ' + jwt.encode(claims, private, algorithm='RS256'), 'https://service.example', {CALLER.email}, keys)
+
+
+def test_valid_google_identity(signed):
+    assert invoke(signed) == CALLER
+    signed[1]['iss'] = 'accounts.google.com'
+    assert invoke(signed).tenant == CALLER.tenant
