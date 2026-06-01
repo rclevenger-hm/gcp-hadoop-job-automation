@@ -38,3 +38,9 @@ def test_wrong_claims_fail_closed(signed, field, value):
     with pytest.raises(ApiError) as error:
         invoke(signed)
     assert error.value.status == 401
+
+
+def test_wrong_signature_rejected(signed):
+    signed[2].get_signing_key_from_jwt.return_value.key = rsa.generate_private_key(public_exponent=65537, key_size=2048).public_key()
+    with pytest.raises(ApiError):
+        invoke(signed)
