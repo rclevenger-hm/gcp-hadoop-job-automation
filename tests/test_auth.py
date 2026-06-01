@@ -44,3 +44,9 @@ def test_wrong_signature_rejected(signed):
     signed[2].get_signing_key_from_jwt.return_value.key = rsa.generate_private_key(public_exponent=65537, key_size=2048).public_key()
     with pytest.raises(ApiError):
         invoke(signed)
+
+
+@pytest.mark.parametrize('header', [None, '', 'Basic fake', 'Bearer ' + 'x' * 17000])
+def test_missing_or_oversized_token(header):
+    with pytest.raises(ApiError):
+        authenticate(header, 'audience', {CALLER.email})
