@@ -26,3 +26,27 @@ def test_already_exists_resolves_exact_remote(env, payload):
     env.client.get_job.return_value = remote(job)
     assert env.native.submit(job).job_uuid == 'remote-unique-id'
     assert env.client.get_job.call_args.kwargs['request']['job_id'] == job['dataproc_job_id']
+
+
+@pytest.mark.parametrize('field', ['project', 'job_id', 'cluster', 'label', 'class', 'jar', 'args', 'uuid'])
+def test_remote_identity_fingerprint_fence(env, payload, field):
+    job = create(env, payload)
+    value = remote(job)
+    if field == 'project':
+        value.reference.project_id = 'other'
+    elif field == 'job_id':
+        value.reference.job_id = 'other'
+    elif field == 'cluster':
+        value.placement.cluster_name = 'other'
+    elif field == 'label':
+        value.labels['submission'] = 'other'
+    elif field == 'class':
+        value.hadoop_job.main_class = 'other'
+    elif field == 'jar':
+        value.hadoop_job.jar_file_uris = ['gs://evil/job.jar']
+    elif field == 'args':
+        value.hadoop_job.args = ['other']
+    elif field == 'uuid':
+        job['remote_uuid'] = 'previous-uuid'
+    with pytest.raises(RemoteMismatch):
+        env.native.verify(job, value)
