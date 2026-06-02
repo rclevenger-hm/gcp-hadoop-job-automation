@@ -50,3 +50,8 @@ def test_remote_identity_fingerprint_fence(env, payload, field):
         job['remote_uuid'] = 'previous-uuid'
     with pytest.raises(RemoteMismatch):
         env.native.verify(job, value)
+
+
+def test_missing_remote_returns_none(env, payload):
+    env.client.get_job.side_effect = NotFound('gone')
+    assert env.native.get(create(env, payload)) is None
