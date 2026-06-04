@@ -67,3 +67,8 @@ def test_cancel_checks_identity_before_mutation(env, payload):
     with pytest.raises(RemoteMismatch):
         env.native.cancel(job)
     env.client.cancel_job.assert_called_once()
+
+
+@pytest.mark.parametrize('native,expected', [('PENDING', 'SUBMITTED'), ('SETUP_DONE', 'SUBMITTED'), ('RUNNING', 'RUNNING'), ('ATTEMPT_FAILURE', 'RUNNING'), ('CANCEL_PENDING', 'CANCEL_REQUESTED'), ('CANCEL_STARTED', 'CANCEL_REQUESTED'), ('DONE', 'SUCCEEDED'), ('ERROR', 'FAILED'), ('CANCELLED', 'CANCELLED')])
+def test_native_state_map(env, payload, native, expected):
+    assert env.native.state(remote(create(env, payload), native)) == expected
