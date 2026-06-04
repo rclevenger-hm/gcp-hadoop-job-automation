@@ -72,3 +72,14 @@ def test_cancel_checks_identity_before_mutation(env, payload):
 @pytest.mark.parametrize('native,expected', [('PENDING', 'SUBMITTED'), ('SETUP_DONE', 'SUBMITTED'), ('RUNNING', 'RUNNING'), ('ATTEMPT_FAILURE', 'RUNNING'), ('CANCEL_PENDING', 'CANCEL_REQUESTED'), ('CANCEL_STARTED', 'CANCEL_REQUESTED'), ('DONE', 'SUCCEEDED'), ('ERROR', 'FAILED'), ('CANCELLED', 'CANCELLED')])
 def test_native_state_map(env, payload, native, expected):
     assert env.native.state(remote(create(env, payload), native)) == expected
+
+
+def test_logs_bounded_raw_byte_range_and_segment(env, payload):
+    job = create(env, payload)
+    env.client.get_job.return_value = remote(job)
+    blob = env.storage.bucket.return_value.blob.return_value
+    blob.download_as_bytes.return_value = b'x' * 17
+    result = env.native.logs(job, limit=16, segment='2', offset='10')
+    assert result['text'] == 'x' * 16 and result['next_offset'] == 26
+    assert env.storage.bucket.return_value.blob.call_args.args[0].endswith('.000000002')
+    blob.download_as_bytes.assert_called_once_with(start=10, end=26, raw_download=True, retry=None, timeout=8)
