@@ -55,3 +55,15 @@ def test_remote_identity_fingerprint_fence(env, payload, field):
 def test_missing_remote_returns_none(env, payload):
     env.client.get_job.side_effect = NotFound('gone')
     assert env.native.get(create(env, payload)) is None
+
+
+def test_cancel_checks_identity_before_mutation(env, payload):
+    job = create(env, payload)
+    env.client.get_job.return_value = remote(job)
+    env.client.cancel_job.return_value = remote(job, 'CANCEL_PENDING')
+    assert env.native.cancel(job)
+    env.client.get_job.return_value = remote(job, uuid='replacement')
+    job['remote_uuid'] = 'original'
+    with pytest.raises(RemoteMismatch):
+        env.native.cancel(job)
+    env.client.cancel_job.assert_called_once()
