@@ -90,3 +90,21 @@ def test_log_bounds(env, payload, kwargs):
     with pytest.raises(ApiError):
         env.native.logs(create(env, payload), **kwargs)
     env.client.get_job.assert_not_called()
+
+
+def test_log_uri_allowlist_and_missing_upload(env, payload):
+    job = create(env, payload)
+    value = remote(job)
+    value.driver_output_resource_uri = 'gs://other/secret'
+    env.client.get_job.return_value = value
+    with pytest.raises(ApiError, match='outside'):
+        env.native.logs(job)
+    env.storage.bucket.assert_not_called()
+    env.client.get_job.return_value = remote(job)
+    blob = env.storage.bucket.return_value.blob.return_value
+    blob.download_as_bytes.side_effect = NotFound('not uploaded')
+    with pytest.raises(ApiError) as error:
+        env.native.logs(job)
+    assert error.value.code == 'LOG_NOT_READY'
+    blob.download_as_bytes.side_effect = RequestRangeNotSatisfiable('end')
+    assert env.native.logs(job)['text'] == ''
