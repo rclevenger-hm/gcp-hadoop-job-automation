@@ -83,3 +83,10 @@ def test_logs_bounded_raw_byte_range_and_segment(env, payload):
     assert result['text'] == 'x' * 16 and result['next_offset'] == 26
     assert env.storage.bucket.return_value.blob.call_args.args[0].endswith('.000000002')
     blob.download_as_bytes.assert_called_once_with(start=10, end=26, raw_download=True, retry=None, timeout=8)
+
+
+@pytest.mark.parametrize('kwargs', [{'stream': 'stderr'}, {'segment': '-1'}, {'segment': '1000000'}, {'offset': '104857601'}, {'offset': '1.2'}, {'limit': 65537}])
+def test_log_bounds(env, payload, kwargs):
+    with pytest.raises(ApiError):
+        env.native.logs(create(env, payload), **kwargs)
+    env.client.get_job.assert_not_called()
