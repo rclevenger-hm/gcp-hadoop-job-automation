@@ -20,3 +20,14 @@ def http(env, monkeypatch):
         with app.test_request_context(path, method=method, json=value, headers={'Idempotency-Key': 'valid-key-123'}, **kwargs):
             return handler(request)
     return call
+
+
+def test_create_replay_history_and_usage(http, payload):
+    raw, status, headers = http(value=payload)
+    job = json.loads(raw)
+    assert status == 202 and headers['Cache-Control'] == 'no-store'
+    assert http(value=payload)[1] == 200
+    assert json.loads(http('/jobs', 'GET')[0])['jobs'][0]['job_id'] == job['job_id']
+    assert json.loads(http('/usage', 'GET')[0])['jobs'] == 1
+    assert http('/jobs/' + job['job_id'], 'GET')[1] == 200
+    assert http('/jobs/' + job['job_id'] + '/cancel')[1] == 200
