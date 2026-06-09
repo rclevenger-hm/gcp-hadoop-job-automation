@@ -31,3 +31,11 @@ def test_create_replay_history_and_usage(http, payload):
     assert json.loads(http('/usage', 'GET')[0])['jobs'] == 1
     assert http('/jobs/' + job['job_id'], 'GET')[1] == 200
     assert http('/jobs/' + job['job_id'] + '/cancel')[1] == 200
+
+
+def test_auth_before_runtime_or_body(http, monkeypatch):
+    def deny(*args):
+        raise ApiError(401, 'UNAUTHENTICATED', 'Denied')
+    monkeypatch.setattr(handlers, 'authenticate', deny)
+    monkeypatch.setattr(handlers, 'runtime', lambda: pytest.fail('must authenticate first'))
+    assert http(value={'anything': True})[1] == 401
