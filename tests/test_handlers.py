@@ -39,3 +39,9 @@ def test_auth_before_runtime_or_body(http, monkeypatch):
     monkeypatch.setattr(handlers, 'authenticate', deny)
     monkeypatch.setattr(handlers, 'runtime', lambda: pytest.fail('must authenticate first'))
     assert http(value={'anything': True})[1] == 401
+
+
+def test_errors_do_not_expose_request_or_provider_data(http, env, payload):
+    env.publisher.publish.side_effect = RuntimeError('SECRET-TOKEN')
+    result = http(value=payload)
+    assert result[1] == 503 and 'SECRET-TOKEN' not in result[0]
