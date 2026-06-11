@@ -55,3 +55,14 @@ def test_invalid_routes_queries(http, path):
 def test_body_and_content_type_bounds(http):
     assert http(value={'text': 'x' * 65537})[1] == 413
     assert http()[1] == 415
+
+
+def test_worker_valid_duplicate_and_malformed(http, env, payload):
+    job = create(env, payload)
+    encoded = base64.b64encode(json.dumps(message(job)).encode()).decode()
+    envelope = {'message': {'data': encoded}}
+    assert http(value=envelope, handler=handlers.worker_handler)[1] == 204
+    assert http(value=envelope, handler=handlers.worker_handler)[1] == 204
+    env.dp.submit.assert_called_once()
+    assert http(value={'message': {'data': '!'}}, handler=handlers.worker_handler)[1] == 503
+    assert http(method='GET', handler=handlers.worker_handler)[1] == 405
