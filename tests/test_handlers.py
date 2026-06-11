@@ -50,3 +50,8 @@ def test_errors_do_not_expose_request_or_provider_data(http, env, payload):
 @pytest.mark.parametrize('path', ['/unknown', '/jobs/no-such-job', '/jobs?status=UNKNOWN', '/jobs?limit=0'])
 def test_invalid_routes_queries(http, path):
     assert http(path, 'GET')[1] in {400, 404}
+
+
+def test_body_and_content_type_bounds(http):
+    assert http(value={'text': 'x' * 65537})[1] == 413
+    assert http()[1] == 415
