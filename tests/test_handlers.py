@@ -66,3 +66,8 @@ def test_worker_valid_duplicate_and_malformed(http, env, payload):
     env.dp.submit.assert_called_once()
     assert http(value={'message': {'data': '!'}}, handler=handlers.worker_handler)[1] == 503
     assert http(method='GET', handler=handlers.worker_handler)[1] == 405
+
+
+def test_scheduler_returns_failure_for_alerting(http, env):
+    env.service.reconcile = lambda remaining: {'processed': 1, 'failed': 1}
+    assert http(handler=handlers.reconcile_handler)[1] == 503
