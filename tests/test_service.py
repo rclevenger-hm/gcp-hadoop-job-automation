@@ -26,3 +26,14 @@ def test_timeout_retries_with_original_native_ids(env, payload):
     assert first['submission_id'] == second['submission_id'] == job['submission_id']
     assert first['dataproc_job_id'] == second['dataproc_job_id']
     assert second['attempts'] == 2
+
+
+def test_lost_submit_response_attaches_existing_remote(env, payload):
+    job = create(env, payload)
+    env.dp.submit.side_effect = TimeoutError()
+    env.service.process(message(job))
+    env.clock[0] += 121
+    env.service.reconcile_one(job['tenant'], job['job_id'])
+    current = env.store.get(job['tenant'], job['job_id'])
+    assert current['remote_uuid'] == 'remote-unique-id' and current['status'] == 'RUNNING'
+    env.dp.submit.assert_called_once()
