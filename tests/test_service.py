@@ -37,3 +37,13 @@ def test_lost_submit_response_attaches_existing_remote(env, payload):
     current = env.store.get(job['tenant'], job['job_id'])
     assert current['remote_uuid'] == 'remote-unique-id' and current['status'] == 'RUNNING'
     env.dp.submit.assert_called_once()
+
+
+def test_crash_before_submit_can_recover(env, payload):
+    job = create(env, payload)
+    env.store.replace(job, status='SUBMITTING', attempts=1, submitted_at=env.clock[0])
+    env.dp.get.side_effect = lambda _: None
+    env.clock[0] += 121
+    env.service.reconcile_one(job['tenant'], job['job_id'])
+    env.service.process(message(job))
+    env.dp.submit.assert_called_once()
