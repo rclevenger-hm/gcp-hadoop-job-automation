@@ -47,3 +47,10 @@ def test_crash_before_submit_can_recover(env, payload):
     env.service.reconcile_one(job['tenant'], job['job_id'])
     env.service.process(message(job))
     env.dp.submit.assert_called_once()
+
+
+def test_cancel_before_dispatch_prevents_execution(env, payload):
+    job = create(env, payload)
+    assert env.service.cancel(CALLER, job['job_id'])['status'] == 'CANCELLED'
+    env.service.process(message(job))
+    env.dp.submit.assert_not_called()
