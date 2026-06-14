@@ -54,3 +54,17 @@ def test_cancel_before_dispatch_prevents_execution(env, payload):
     assert env.service.cancel(CALLER, job['job_id'])['status'] == 'CANCELLED'
     env.service.process(message(job))
     env.dp.submit.assert_not_called()
+
+
+def test_cancel_racing_submission_is_preserved(env, payload):
+    job = create(env, payload)
+    def submit(value):
+        env.service.cancel(CALLER, job['job_id'])
+        return remote(value)
+    env.dp.submit.side_effect = submit
+    env.service.process(message(job))
+    current = env.store.get(job['tenant'], job['job_id'])
+    assert current['status'] == 'CANCEL_REQUESTED' and current['remote_uuid']
+    env.clock[0] += 121
+    env.service.reconcile_one(job['tenant'], job['job_id'])
+    env.dp.cancel.assert_called_once()
