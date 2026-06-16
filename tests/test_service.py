@@ -91,3 +91,14 @@ def test_cancel_ack_does_not_override_remote_success(env, payload):
     env.dp.get.side_effect = lambda j: remote(j, 'DONE')
     env.service.reconcile_one(job['tenant'], job['job_id'])
     assert env.store.get(job['tenant'], job['job_id'])['status'] == 'SUCCEEDED'
+
+
+@pytest.mark.parametrize('attempts,age', [(5, 121), (1, 86401)])
+def test_ambiguous_submission_has_bounded_retry_budget(env, payload, attempts, age):
+    job = create(env, payload)
+    env.store.replace(job, attempts=attempts, status='SUBMISSION_UNKNOWN', submitted_at=env.clock[0])
+    env.dp.get.side_effect = lambda _: None
+    env.clock[0] += age
+    env.service.reconcile_one(job['tenant'], job['job_id'])
+    assert env.store.get(job['tenant'], job['job_id'])['status'] == 'NEEDS_REVIEW'
+    env.dp.submit.assert_not_called()
