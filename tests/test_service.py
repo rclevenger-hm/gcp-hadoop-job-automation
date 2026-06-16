@@ -112,3 +112,13 @@ def test_confirmed_remote_disappears_never_resubmitted(env, payload):
     env.service.reconcile_one(job['tenant'], job['job_id'])
     assert env.store.get(job['tenant'], job['job_id'])['reason'] == 'REMOTE_JOB_MISSING'
     env.dp.submit.assert_called_once()
+
+
+def test_foreign_remote_is_not_cancelled(env, payload):
+    job = create(env, payload)
+    env.service.process(message(job))
+    env.service.cancel(CALLER, job['job_id'])
+    env.dp.get.side_effect = RemoteMismatch()
+    env.service.reconcile_one(job['tenant'], job['job_id'])
+    assert env.store.get(job['tenant'], job['job_id'])['reason'] == 'REMOTE_IDENTITY_MISMATCH'
+    env.dp.cancel.assert_not_called()
