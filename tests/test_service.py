@@ -79,3 +79,15 @@ def test_cancel_retry_queue_does_not_falsely_claim_cancelled(env, payload):
     env.service.reconcile_one(job['tenant'], job['job_id'])
     assert env.store.get(job['tenant'], job['job_id'])['status'] == 'CANCEL_REQUESTED'
     env.dp.submit.assert_not_called()
+
+
+def test_cancel_ack_does_not_override_remote_success(env, payload):
+    job = create(env, payload)
+    env.service.process(message(job))
+    env.service.cancel(CALLER, job['job_id'])
+    env.service.reconcile_one(job['tenant'], job['job_id'])
+    assert env.store.get(job['tenant'], job['job_id'])['cancel_accepted']
+    env.clock[0] += 121
+    env.dp.get.side_effect = lambda j: remote(j, 'DONE')
+    env.service.reconcile_one(job['tenant'], job['job_id'])
+    assert env.store.get(job['tenant'], job['job_id'])['status'] == 'SUCCEEDED'
