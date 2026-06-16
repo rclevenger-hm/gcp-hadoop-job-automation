@@ -102,3 +102,13 @@ def test_ambiguous_submission_has_bounded_retry_budget(env, payload, attempts, a
     env.service.reconcile_one(job['tenant'], job['job_id'])
     assert env.store.get(job['tenant'], job['job_id'])['status'] == 'NEEDS_REVIEW'
     env.dp.submit.assert_not_called()
+
+
+def test_confirmed_remote_disappears_never_resubmitted(env, payload):
+    job = create(env, payload)
+    env.service.process(message(job))
+    env.dp.get.side_effect = lambda _: None
+    env.clock[0] += 121
+    env.service.reconcile_one(job['tenant'], job['job_id'])
+    assert env.store.get(job['tenant'], job['job_id'])['reason'] == 'REMOTE_JOB_MISSING'
+    env.dp.submit.assert_called_once()
