@@ -68,3 +68,14 @@ def test_cancel_racing_submission_is_preserved(env, payload):
     env.clock[0] += 121
     env.service.reconcile_one(job['tenant'], job['job_id'])
     env.dp.cancel.assert_called_once()
+
+
+def test_cancel_retry_queue_does_not_falsely_claim_cancelled(env, payload):
+    job = create(env, payload)
+    env.store.replace(job, attempts=1)
+    assert env.service.cancel(CALLER, job['job_id'])['status'] == 'CANCEL_REQUESTED'
+    env.dp.get.side_effect = lambda _: None
+    env.clock[0] += 121
+    env.service.reconcile_one(job['tenant'], job['job_id'])
+    assert env.store.get(job['tenant'], job['job_id'])['status'] == 'CANCEL_REQUESTED'
+    env.dp.submit.assert_not_called()
