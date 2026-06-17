@@ -122,3 +122,10 @@ def test_foreign_remote_is_not_cancelled(env, payload):
     env.service.reconcile_one(job['tenant'], job['job_id'])
     assert env.store.get(job['tenant'], job['job_id'])['reason'] == 'REMOTE_IDENTITY_MISMATCH'
     env.dp.cancel.assert_not_called()
+
+
+def test_submit_identity_collision_requires_review(env, payload):
+    job = create(env, payload)
+    env.dp.submit.side_effect = RemoteMismatch()
+    env.service.process(message(job))
+    assert env.store.get(job['tenant'], job['job_id'])['status'] == 'NEEDS_REVIEW'
