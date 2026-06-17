@@ -129,3 +129,15 @@ def test_submit_identity_collision_requires_review(env, payload):
     env.dp.submit.side_effect = RemoteMismatch()
     env.service.process(message(job))
     assert env.store.get(job['tenant'], job['job_id'])['status'] == 'NEEDS_REVIEW'
+
+
+def test_queue_publish_failure_is_recovered(env, payload):
+    env.publisher.publish.side_effect = RuntimeError('offline')
+    with pytest.raises(RuntimeError):
+        create(env, payload)
+    jobs, _ = env.store.history(CALLER.tenant)
+    assert len(jobs) == 1
+    env.publisher.publish.side_effect = None
+    env.clock[0] += 121
+    env.service.reconcile_one(jobs[0]['tenant'], jobs[0]['job_id'])
+    assert env.publisher.publish.call_count == 2
