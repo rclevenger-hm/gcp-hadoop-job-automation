@@ -141,3 +141,13 @@ def test_queue_publish_failure_is_recovered(env, payload):
     env.clock[0] += 121
     env.service.reconcile_one(jobs[0]['tenant'], jobs[0]['job_id'])
     assert env.publisher.publish.call_count == 2
+
+
+def test_ownership_uses_subject_not_recreated_email(env, payload):
+    from app.auth import Identity
+    job = create(env, payload)
+    for caller in [OTHER, Identity('00001', CALLER.email)]:
+        for action in [env.service.owned, env.service.cancel]:
+            with pytest.raises(ApiError) as error:
+                action(caller, job['job_id'])
+            assert error.value.status == 404
