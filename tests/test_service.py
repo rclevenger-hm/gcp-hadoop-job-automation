@@ -151,3 +151,12 @@ def test_ownership_uses_subject_not_recreated_email(env, payload):
             with pytest.raises(ApiError) as error:
                 action(caller, job['job_id'])
             assert error.value.status == 404
+
+
+def test_reconcile_respects_deadline_and_counts_errors(env, payload):
+    job = create(env, payload)
+    env.service.process(message(job))
+    env.clock[0] += 121
+    assert env.service.reconcile(lambda: 1000) == {'processed': 0, 'failed': 0}
+    env.dp.get.side_effect = RuntimeError()
+    assert env.service.reconcile()['failed'] == 1
