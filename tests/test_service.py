@@ -170,3 +170,17 @@ def test_queue_admission_expiry(env, payload, attempts, expected):
     env.service.process(message(job))
     assert env.store.get(job['tenant'], job['job_id'])['status'] == expected
     env.dp.submit.assert_not_called()
+
+
+def test_successful_remote_submit_failed_metadata_write_recovers(env, payload, monkeypatch):
+    job = create(env, payload)
+    attach = env.service.attach
+    monkeypatch.setattr(env.service, 'attach', lambda *a, **kw: (_ for _ in ()).throw(RuntimeError('database down')))
+    with pytest.raises(RuntimeError):
+        env.service.process(message(job))
+    monkeypatch.setattr(env.service, 'attach', attach)
+    env.service.process(message(job))
+    env.clock[0] += 121
+    env.service.reconcile_one(job['tenant'], job['job_id'])
+    env.dp.submit.assert_called_once()
+    assert env.store.get(job['tenant'], job['job_id'])['status'] == 'RUNNING'
