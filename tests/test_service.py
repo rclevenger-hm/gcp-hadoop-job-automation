@@ -160,3 +160,13 @@ def test_reconcile_respects_deadline_and_counts_errors(env, payload):
     assert env.service.reconcile(lambda: 1000) == {'processed': 0, 'failed': 0}
     env.dp.get.side_effect = RuntimeError()
     assert env.service.reconcile()['failed'] == 1
+
+
+@pytest.mark.parametrize('attempts,expected', [(0, 'FAILED'), (1, 'NEEDS_REVIEW')])
+def test_queue_admission_expiry(env, payload, attempts, expected):
+    job = create(env, payload)
+    env.store.replace(job, attempts=attempts)
+    env.clock[0] += 86400
+    env.service.process(message(job))
+    assert env.store.get(job['tenant'], job['job_id'])['status'] == expected
+    env.dp.submit.assert_not_called()
