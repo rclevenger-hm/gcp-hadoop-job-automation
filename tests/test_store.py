@@ -30,3 +30,12 @@ def test_concurrent_admission_is_atomic(env, payload):
         jobs = list(executor.map(lambda _: create(env, copy.deepcopy(payload)), range(30)))
     assert len({j['submission_id'] for j in jobs}) == 1
     assert env.store.usage(CALLER.tenant)['jobs'] == 1
+
+
+def test_quota_rejects_new_job_but_allows_replay(env, payload):
+    env.store.daily_limit = 1
+    first = create(env, payload)
+    assert create(env, payload)['job_id'] == first['job_id']
+    with pytest.raises(ApiError, match='exhausted'):
+        create(env, payload, 'different-key')
+    assert len(env.store.history(CALLER.tenant)[0]) == 1
