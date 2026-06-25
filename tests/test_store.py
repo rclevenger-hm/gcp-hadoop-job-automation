@@ -39,3 +39,13 @@ def test_quota_rejects_new_job_but_allows_replay(env, payload):
     with pytest.raises(ApiError, match='exhausted'):
         create(env, payload, 'different-key')
     assert len(env.store.history(CALLER.tenant)[0]) == 1
+
+
+def test_rate_limit_and_next_window(env):
+    env.store.rate_limit = 2
+    env.store.request_limit(CALLER.tenant)
+    env.store.request_limit(CALLER.tenant)
+    with pytest.raises(ApiError, match='exhausted'):
+        env.store.request_limit(CALLER.tenant)
+    env.clock[0] += 60
+    env.store.request_limit(CALLER.tenant)
