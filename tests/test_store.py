@@ -56,3 +56,15 @@ def test_compare_and_swap_prevents_lost_cancellation(env, payload):
     cancelled = env.store.replace(job, status='CANCELLED', cancel_requested=True)
     assert env.store.replace(job, status='RUNNING') is None
     assert env.store.get(CALLER.tenant, job['job_id']) == cancelled
+
+
+def test_active_jobs_never_ttl_and_terminal_jobs_do(env, payload):
+    job = create(env, payload)
+    assert 'expiresOn' not in job
+    final = env.store.replace(job, status='SUCCEEDED')
+    assert 'active_shard' not in final
+    assert final['expiresOn'].timestamp() == final['expires_at']
+    env.clock[0] = final['expires_at']
+    assert env.store.get(CALLER.tenant, job['job_id']) is None
+    with pytest.raises(ApiError, match='fresh'):
+        create(env, payload)
