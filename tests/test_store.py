@@ -68,3 +68,12 @@ def test_active_jobs_never_ttl_and_terminal_jobs_do(env, payload):
     assert env.store.get(CALLER.tenant, job['job_id']) is None
     with pytest.raises(ApiError, match='fresh'):
         create(env, payload)
+
+
+def test_reused_key_after_ttl_gets_new_remote_ids(env, payload):
+    job = create(env, payload)
+    del env.db.data[env.store.ref(CALLER.tenant, job['job_id']).id]
+    new = create(env, payload)
+    assert new['job_id'] == job['job_id']
+    assert new['dataproc_job_id'] != job['dataproc_job_id']
+    assert new['submission_id'] != job['submission_id']
