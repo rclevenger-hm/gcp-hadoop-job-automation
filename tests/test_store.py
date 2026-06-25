@@ -49,3 +49,10 @@ def test_rate_limit_and_next_window(env):
         env.store.request_limit(CALLER.tenant)
     env.clock[0] += 60
     env.store.request_limit(CALLER.tenant)
+
+
+def test_compare_and_swap_prevents_lost_cancellation(env, payload):
+    job = create(env, payload)
+    cancelled = env.store.replace(job, status='CANCELLED', cancel_requested=True)
+    assert env.store.replace(job, status='RUNNING') is None
+    assert env.store.get(CALLER.tenant, job['job_id']) == cancelled
