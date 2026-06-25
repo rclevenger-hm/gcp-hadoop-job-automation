@@ -77,3 +77,16 @@ def test_reused_key_after_ttl_gets_new_remote_ids(env, payload):
     assert new['job_id'] == job['job_id']
     assert new['dataproc_job_id'] != job['dataproc_job_id']
     assert new['submission_id'] != job['submission_id']
+
+
+def test_history_pagination_status_filter_and_tenant_fence(env, payload):
+    jobs = [create(env, payload, f'key-number-{i}') for i in range(5)]
+    for j in jobs[:3]:
+        env.store.replace(j, status='SUCCEEDED')
+    first, token = env.store.history(CALLER.tenant, 2, status='SUCCEEDED')
+    second, end = env.store.history(CALLER.tenant, 2, token, 'SUCCEEDED')
+    assert len(first) == 2 and len(second) == 1 and end is None
+    assert len({j['job_id'] for j in first + second}) == 3
+    for tenant, status in [(OTHER.tenant, 'SUCCEEDED'), (CALLER.tenant, 'RUNNING')]:
+        with pytest.raises(ApiError, match='Cursor'):
+            env.store.history(tenant, 2, token, status)
