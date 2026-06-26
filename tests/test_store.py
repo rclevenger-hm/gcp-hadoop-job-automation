@@ -96,3 +96,11 @@ def test_history_pagination_status_filter_and_tenant_fence(env, payload):
 def test_bad_history_cursor(env, cursor):
     with pytest.raises(ApiError):
         env.store.history(CALLER.tenant, cursor=cursor)
+
+
+def test_claim_poll_lease_excludes_duplicate_worker(env, payload):
+    job = create(env, payload)
+    assert env.store.claim_poll(CALLER.tenant, job['job_id']) is None
+    env.clock[0] += 121
+    assert env.store.claim_poll(CALLER.tenant, job['job_id']) is not None
+    assert env.store.claim_poll(CALLER.tenant, job['job_id']) is None
