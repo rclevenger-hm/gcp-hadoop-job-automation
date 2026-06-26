@@ -90,3 +90,9 @@ def test_history_pagination_status_filter_and_tenant_fence(env, payload):
     for tenant, status in [(OTHER.tenant, 'SUCCEEDED'), (CALLER.tenant, 'RUNNING')]:
         with pytest.raises(ApiError, match='Cursor'):
             env.store.history(tenant, 2, token, status)
+
+
+@pytest.mark.parametrize('cursor', ['!', 'a' * 2049, 'e30='])
+def test_bad_history_cursor(env, cursor):
+    with pytest.raises(ApiError):
+        env.store.history(CALLER.tenant, cursor=cursor)
