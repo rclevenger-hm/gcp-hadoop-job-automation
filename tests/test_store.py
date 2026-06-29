@@ -104,3 +104,10 @@ def test_claim_poll_lease_excludes_duplicate_worker(env, payload):
     env.clock[0] += 121
     assert env.store.claim_poll(CALLER.tenant, job['job_id']) is not None
     assert env.store.claim_poll(CALLER.tenant, job['job_id']) is None
+
+
+def test_expired_history_records_are_hidden(env, payload):
+    job = create(env, payload)
+    env.store.replace(job, status='FAILED')
+    env.clock[0] += 31 * 86400
+    assert env.store.history(CALLER.tenant)[0] == []
