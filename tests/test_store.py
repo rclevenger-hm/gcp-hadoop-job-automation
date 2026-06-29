@@ -111,3 +111,12 @@ def test_expired_history_records_are_hidden(env, payload):
     env.store.replace(job, status='FAILED')
     env.clock[0] += 31 * 86400
     assert env.store.history(CALLER.tenant)[0] == []
+
+
+def test_sdk_query_cursor_shapes_without_network():
+    db = firestore.Client(project='test-project', credentials=AnonymousCredentials())
+    query = db.collection('items').where(filter=FieldFilter('tenant', '==', 'test')).order_by('created_at', direction='DESCENDING').order_by('__name__', direction='DESCENDING')
+    wire = query.start_after({'created_at': 123, '__name__': db.collection('items').document('a' * 64)})._to_protobuf()
+    assert len(wire.start_at.values) == 2
+    assert wire.start_at.values[1].reference_value.endswith('/items/' + 'a' * 64)
+    assert callable(Store(db, None, '').transaction)
