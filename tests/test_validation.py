@@ -37,3 +37,7 @@ def test_aggregate_job_limit(payload, profiles):
     payload['arguments'] = ['x' * 1024] * 10
     with pytest.raises(ApiError, match='10240'):
         job_request(payload, profiles, CALLER)
+
+
+def test_utf8_body():
+    assert body(json.dumps({'text': '雪'}).encode()) == {'text': '雪'}
