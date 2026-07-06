@@ -47,3 +47,9 @@ def test_utf8_body():
 def test_invalid_json_envelopes(raw):
     with pytest.raises(ApiError):
         body(raw)
+
+
+def test_body_size():
+    with pytest.raises(ApiError) as error:
+        body(b'x' * 65537)
+    assert error.value.status == 413
