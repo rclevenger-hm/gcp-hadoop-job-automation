@@ -41,3 +41,9 @@ def test_aggregate_job_limit(payload, profiles):
 
 def test_utf8_body():
     assert body(json.dumps({'text': '雪'}).encode()) == {'text': '雪'}
+
+
+@pytest.mark.parametrize('raw', [b'null', b'[]', b'NaN', b'{', b'{"x":NaN}', b'\xff'])
+def test_invalid_json_envelopes(raw):
+    with pytest.raises(ApiError):
+        body(raw)
