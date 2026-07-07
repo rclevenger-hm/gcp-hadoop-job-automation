@@ -53,3 +53,9 @@ def test_body_size():
     with pytest.raises(ApiError) as error:
         body(b'x' * 65537)
     assert error.value.status == 413
+
+
+@pytest.mark.parametrize('value', ['-1', '0', '101', '1.2', 'NaN'])
+def test_pagination_bounds(value):
+    with pytest.raises(ApiError):
+        integer(value, 20, 100)
