@@ -17,3 +17,24 @@ resource "google_firestore_field" "expiry" {
   ttl_config {}
   index_config {}
 }
+resource "google_firestore_index" "history" {
+  project    = var.project_id
+  database   = google_firestore_database.data.name
+  collection = "items"
+  fields {
+    field_path = "tenant"
+    order      = "ASCENDING"
+  }
+  fields {
+    field_path = "kind"
+    order      = "ASCENDING"
+  }
+  fields {
+    field_path = "created_at"
+    order      = "DESCENDING"
+  }
+  fields {
+    field_path = "__name__"
+    order      = "DESCENDING"
+  }
+}
