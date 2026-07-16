@@ -81,3 +81,11 @@ resource "google_firestore_index" "active" {
   }
 }
 
+resource "google_firestore_field" "unindexed_payloads" {
+  for_each   = toset(["request", "profile"])
+  project    = var.project_id
+  database   = google_firestore_database.data.name
+  collection = "items"
+  field      = each.value
+  index_config {}
+}
