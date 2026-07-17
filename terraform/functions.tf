@@ -31,3 +31,10 @@ resource "google_cloudfunctions2_function" "service" {
   labels     = local.labels
   depends_on = [google_project_service.required, google_project_iam_member.build, google_storage_bucket_iam_member.build_source, google_project_iam_member.database, google_project_iam_member.dataproc, google_storage_bucket_iam_member.logs, google_pubsub_topic_iam_member.publisher]
 }
+resource "google_cloud_run_service_iam_member" "consumers" {
+  for_each = local.consumers
+  location = var.region
+  service  = google_cloudfunctions2_function.service["api"].name
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:${each.value}"
+}
