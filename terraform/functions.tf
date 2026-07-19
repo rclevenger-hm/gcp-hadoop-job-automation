@@ -38,3 +38,9 @@ resource "google_cloud_run_service_iam_member" "consumers" {
   role     = "roles/run.invoker"
   member   = "serviceAccount:${each.value}"
 }
+resource "google_cloud_run_service_iam_member" "push" {
+  location = var.region
+  service  = google_cloudfunctions2_function.service["worker"].name
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:${google_service_account.push.email}"
+}
