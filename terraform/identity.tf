@@ -6,3 +6,9 @@ resource "google_service_account" "runtime" {
 resource "google_service_account" "build" { account_id = "${local.prefix}-build" }
 resource "google_service_account" "push" { account_id = "${local.prefix}-push" }
 resource "google_service_account" "scheduler" { account_id = "${local.prefix}-schedule" }
+resource "google_project_iam_member" "database" {
+  for_each = local.runtime_names
+  project  = var.project_id
+  role     = "roles/datastore.user"
+  member   = "serviceAccount:${google_service_account.runtime[each.key].email}"
+}
