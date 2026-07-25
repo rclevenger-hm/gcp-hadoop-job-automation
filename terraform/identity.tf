@@ -12,3 +12,8 @@ resource "google_project_iam_member" "database" {
   role     = "roles/datastore.user"
   member   = "serviceAccount:${google_service_account.runtime[each.key].email}"
 }
+resource "google_project_iam_member" "build" {
+  project = var.project_id
+  role    = "roles/cloudbuild.builds.builder"
+  member  = "serviceAccount:${google_service_account.build.email}"
+}
