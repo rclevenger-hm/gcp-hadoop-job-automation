@@ -22,3 +22,14 @@ resource "google_storage_bucket_iam_member" "build_source" {
   role   = "roles/storage.objectViewer"
   member = "serviceAccount:${google_service_account.build.email}"
 }
+resource "google_project_iam_custom_role" "dataproc" {
+  for_each = {
+    api       = ["dataproc.jobs.get"]
+    worker    = ["dataproc.jobs.create", "dataproc.jobs.get", "dataproc.clusters.use"]
+    reconcile = ["dataproc.jobs.get", "dataproc.jobs.cancel"]
+  }
+  role_id     = "${replace(local.prefix, "-", "_")}_${each.key}"
+  title       = "Hadoop ${each.key} Dataproc access"
+  permissions = each.value
+  depends_on  = [google_project_service.required]
+}
