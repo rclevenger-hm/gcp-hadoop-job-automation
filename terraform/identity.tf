@@ -33,3 +33,9 @@ resource "google_project_iam_custom_role" "dataproc" {
   permissions = each.value
   depends_on  = [google_project_service.required]
 }
+resource "google_project_iam_member" "dataproc" {
+  for_each = local.runtime_names
+  project  = var.project_id
+  role     = google_project_iam_custom_role.dataproc[each.key].name
+  member   = "serviceAccount:${google_service_account.runtime[each.key].email}"
+}
