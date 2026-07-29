@@ -48,3 +48,16 @@ locals {
   log_uris    = toset(flatten([for p in var.cluster_profiles : p.log_prefixes]))
   log_buckets = toset([for uri in local.log_uris : split("/", trimprefix(uri, "gs://"))[0]])
 }
+resource "google_storage_bucket_iam_member" "logs" {
+  for_each = local.log_buckets
+  bucket   = each.value
+  role     = google_project_iam_custom_role.logs.name
+  member   = "serviceAccount:${google_service_account.runtime["api"].email}"
+  condition {
+    title       = "approved_driver_prefixes"
+    description = "Only approved Dataproc driver output object prefixes"
+    expression = join(" || ", [for uri in local.log_uris :
+      "resource.name.startsWith(${jsonencode("projects/_/buckets/${each.value}/objects/${trimprefix(uri, "gs://${each.value}/")}")})"
+    if startswith(uri, "gs://${each.value}/")])
+  }
+}
