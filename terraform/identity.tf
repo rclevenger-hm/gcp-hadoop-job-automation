@@ -44,3 +44,7 @@ resource "google_project_iam_custom_role" "logs" {
   title       = "Read admitted Hadoop driver objects"
   permissions = ["storage.objects.get"]
 }
+locals {
+  log_uris    = toset(flatten([for p in var.cluster_profiles : p.log_prefixes]))
+  log_buckets = toset([for uri in local.log_uris : split("/", trimprefix(uri, "gs://"))[0]])
+}
