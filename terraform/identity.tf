@@ -39,3 +39,8 @@ resource "google_project_iam_member" "dataproc" {
   role     = google_project_iam_custom_role.dataproc[each.key].name
   member   = "serviceAccount:${google_service_account.runtime[each.key].email}"
 }
+resource "google_project_iam_custom_role" "logs" {
+  role_id     = "${replace(local.prefix, "-", "_")}_logs"
+  title       = "Read admitted Hadoop driver objects"
+  permissions = ["storage.objects.get"]
+}
