@@ -61,3 +61,9 @@ resource "google_storage_bucket_iam_member" "logs" {
     if startswith(uri, "gs://${each.value}/")])
   }
 }
+resource "google_pubsub_topic_iam_member" "publisher" {
+  for_each = toset(["api", "reconcile"])
+  topic    = google_pubsub_topic.jobs.name
+  role     = "roles/pubsub.publisher"
+  member   = "serviceAccount:${google_service_account.runtime[each.key].email}"
+}
