@@ -34,3 +34,9 @@ locals {
     RETENTION_DAYS      = tostring(var.retention_days)
   }
 }
+resource "google_project_service" "required" {
+  for_each           = toset(["cloudfunctions.googleapis.com", "run.googleapis.com", "cloudbuild.googleapis.com", "artifactregistry.googleapis.com", "firestore.googleapis.com", "storage.googleapis.com", "pubsub.googleapis.com", "cloudscheduler.googleapis.com", "dataproc.googleapis.com", "iamcredentials.googleapis.com", "monitoring.googleapis.com", "logging.googleapis.com", "billingbudgets.googleapis.com"])
+  project            = var.project_id
+  service            = each.value
+  disable_on_destroy = false
+}
