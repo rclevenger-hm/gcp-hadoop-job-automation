@@ -37,3 +37,25 @@ resource "google_monitoring_alert_policy" "dead_letter" {
   }
   notification_channels = [google_monitoring_notification_channel.operations.name]
 }
+resource "google_billing_budget" "service" {
+  billing_account = var.billing_account
+  display_name    = "${local.prefix} project budget"
+  budget_filter { projects = ["projects/${data.google_project.current.number}"] }
+  amount {
+    specified_amount {
+      currency_code = var.budget_currency
+      units         = tostring(var.monthly_budget)
+    }
+  }
+  threshold_rules { threshold_percent = 0.8 }
+  threshold_rules {
+    threshold_percent = 1
+    spend_basis       = "FORECASTED_SPEND"
+  }
+  all_updates_rule {
+    monitoring_notification_channels = [google_monitoring_notification_channel.operations.name]
+    disable_default_iam_recipients   = false
+  }
+  depends_on = [google_project_service.required]
+}
+
