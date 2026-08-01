@@ -23,3 +23,17 @@ resource "google_monitoring_alert_policy" "errors" {
   notification_channels = [google_monitoring_notification_channel.operations.name]
   depends_on            = [google_project_service.required]
 }
+resource "google_monitoring_alert_policy" "dead_letter" {
+  display_name = "${local.prefix} dead-letter messages"
+  combiner     = "OR"
+  conditions {
+    display_name = "Messages require inspection"
+    condition_threshold {
+      filter          = "resource.type = \"pubsub_subscription\" AND resource.label.subscription_id = \"${google_pubsub_subscription.dead_letter.name}\" AND metric.type = \"pubsub.googleapis.com/subscription/num_undelivered_messages\""
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0
+      duration        = "60s"
+    }
+  }
+  notification_channels = [google_monitoring_notification_channel.operations.name]
+}
