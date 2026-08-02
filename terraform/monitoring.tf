@@ -59,3 +59,12 @@ resource "google_billing_budget" "service" {
   depends_on = [google_project_service.required]
 }
 
+resource "google_logging_metric" "review" {
+  name   = "${local.prefix}-review"
+  filter = "resource.type=cloud_run_revision AND resource.labels.service_name=~\"^${local.prefix}-\" AND jsonPayload.event=\"job_state\" AND jsonPayload.status=\"NEEDS_REVIEW\""
+  metric_descriptor {
+    metric_kind = "DELTA"
+    value_type  = "INT64"
+  }
+  depends_on = [google_project_service.required]
+}
