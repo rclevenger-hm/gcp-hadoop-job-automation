@@ -68,3 +68,21 @@ resource "google_logging_metric" "review" {
   }
   depends_on = [google_project_service.required]
 }
+resource "google_monitoring_alert_policy" "review" {
+  display_name = "${local.prefix} jobs need review"
+  combiner     = "OR"
+  conditions {
+    display_name = "Uncertain remote job requires operator review"
+    condition_threshold {
+      filter          = "resource.type = \"cloud_run_revision\" AND metric.type = \"logging.googleapis.com/user/${google_logging_metric.review.name}\""
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0
+      duration        = "0s"
+      aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_SUM"
+      }
+    }
+  }
+  notification_channels = [google_monitoring_notification_channel.operations.name]
+}
