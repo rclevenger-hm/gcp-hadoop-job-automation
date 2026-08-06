@@ -4,3 +4,9 @@ resource "google_pubsub_topic" "jobs" {
   labels                     = local.labels
   depends_on                 = [google_project_service.required]
 }
+resource "google_pubsub_topic" "dead_letter" {
+  name                       = "${local.prefix}-dead-letter"
+  message_retention_duration = "604800s"
+  labels                     = local.labels
+  depends_on                 = [google_project_service.required]
+}
