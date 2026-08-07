@@ -16,3 +16,26 @@ resource "google_pubsub_subscription" "dead_letter" {
   message_retention_duration = "604800s"
   expiration_policy { ttl = "" }
 }
+resource "google_pubsub_subscription" "jobs" {
+  name                       = "${local.prefix}-jobs"
+  topic                      = google_pubsub_topic.jobs.name
+  ack_deadline_seconds       = 180
+  message_retention_duration = "86400s"
+  expiration_policy { ttl = "" }
+  retry_policy {
+    minimum_backoff = "10s"
+    maximum_backoff = "600s"
+  }
+  push_config {
+    push_endpoint = google_cloudfunctions2_function.service["worker"].service_config[0].uri
+    oidc_token {
+      service_account_email = google_service_account.push.email
+      audience              = google_cloudfunctions2_function.service["worker"].service_config[0].uri
+    }
+  }
+  dead_letter_policy {
+    dead_letter_topic     = google_pubsub_topic.dead_letter.id
+    max_delivery_attempts = 5
+  }
+  depends_on = [google_cloud_run_service_iam_member.push, google_service_account_iam_member.pubsub_token]
+}
