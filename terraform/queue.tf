@@ -39,3 +39,9 @@ resource "google_pubsub_subscription" "jobs" {
   }
   depends_on = [google_cloud_run_service_iam_member.push, google_service_account_iam_member.pubsub_token]
 }
+resource "google_project_service_identity" "pubsub" {
+  provider   = google-beta
+  project    = var.project_id
+  service    = "pubsub.googleapis.com"
+  depends_on = [google_project_service.required]
+}
