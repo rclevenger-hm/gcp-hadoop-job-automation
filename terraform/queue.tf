@@ -50,3 +50,8 @@ resource "google_service_account_iam_member" "pubsub_token" {
   role               = "roles/iam.serviceAccountTokenCreator"
   member             = "serviceAccount:${google_project_service_identity.pubsub.email}"
 }
+resource "google_pubsub_topic_iam_member" "dead_letter" {
+  topic  = google_pubsub_topic.dead_letter.name
+  role   = "roles/pubsub.publisher"
+  member = "serviceAccount:${google_project_service_identity.pubsub.email}"
+}
