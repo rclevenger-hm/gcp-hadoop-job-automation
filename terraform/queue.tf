@@ -55,3 +55,8 @@ resource "google_pubsub_topic_iam_member" "dead_letter" {
   role   = "roles/pubsub.publisher"
   member = "serviceAccount:${google_project_service_identity.pubsub.email}"
 }
+resource "google_pubsub_subscription_iam_member" "dead_letter_source" {
+  subscription = google_pubsub_subscription.jobs.name
+  role         = "roles/pubsub.subscriber"
+  member       = "serviceAccount:${google_project_service_identity.pubsub.email}"
+}
