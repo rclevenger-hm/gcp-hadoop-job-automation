@@ -60,3 +60,24 @@ resource "google_pubsub_subscription_iam_member" "dead_letter_source" {
   role         = "roles/pubsub.subscriber"
   member       = "serviceAccount:${google_project_service_identity.pubsub.email}"
 }
+resource "google_cloud_scheduler_job" "reconcile" {
+  name             = "${local.prefix}-reconcile"
+  region           = var.region
+  schedule         = "* * * * *"
+  time_zone        = "Etc/UTC"
+  attempt_deadline = "120s"
+  retry_config {
+    retry_count          = 2
+    min_backoff_duration = "30s"
+    max_backoff_duration = "120s"
+  }
+  http_target {
+    http_method = "POST"
+    uri         = google_cloudfunctions2_function.service["reconcile"].service_config[0].uri
+    oidc_token {
+      service_account_email = google_service_account.scheduler.email
+      audience              = google_cloudfunctions2_function.service["reconcile"].service_config[0].uri
+    }
+  }
+  depends_on = [google_project_service.required, google_cloud_run_service_iam_member.scheduler]
+}
