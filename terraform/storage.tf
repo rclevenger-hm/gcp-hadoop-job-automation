@@ -13,3 +13,8 @@ data "archive_file" "source" {
   source_dir  = "${path.module}/../artifacts"
   output_path = "${path.module}/../build/function-source.zip"
 }
+resource "google_storage_bucket_object" "source" {
+  name   = "source-${data.archive_file.source.output_sha256}.zip"
+  bucket = google_storage_bucket.source.name
+  source = data.archive_file.source.output_path
+}
