@@ -8,3 +8,8 @@ resource "google_storage_bucket" "source" {
   labels     = local.labels
   depends_on = [google_project_service.required]
 }
+data "archive_file" "source" {
+  type        = "zip"
+  source_dir  = "${path.module}/../artifacts"
+  output_path = "${path.module}/../build/function-source.zip"
+}
