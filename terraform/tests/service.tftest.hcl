@@ -55,3 +55,8 @@ run "secure_defaults" {
     error_message = "Driver log grants must be prefix-scoped."
   }
 }
+run "reject_unbounded_quota" {
+  command = plan
+  variables { daily_job_limit = -1 }
+  expect_failures = [var.daily_job_limit]
+}
