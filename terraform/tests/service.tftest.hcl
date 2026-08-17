@@ -60,3 +60,19 @@ run "reject_unbounded_quota" {
   variables { daily_job_limit = -1 }
   expect_failures = [var.daily_job_limit]
 }
+run "reject_public_consumers" {
+  command = plan
+  variables {
+    cluster_profiles = {
+      analytics = {
+        cluster_name    = "analytics-cluster"
+        allowed_callers = ["allUsers"]
+        jar_prefixes    = ["gs://your-artifacts/approved/"]
+        input_prefixes  = ["gs://your-data/input/"]
+        output_prefixes = ["gs://your-data/output/"]
+        log_prefixes    = ["gs://your-staging/logs/"]
+      }
+    }
+  }
+  expect_failures = [var.cluster_profiles]
+}
