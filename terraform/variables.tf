@@ -13,3 +13,11 @@ variable "name" {
     error_message = "Use 4–12 lowercase letters, digits, or hyphens, starting with a letter."
   }
 }
+variable "environment" {
+  type    = string
+  default = "dev"
+  validation {
+    condition     = contains(["dev", "stage", "prod"], var.environment)
+    error_message = "Choose dev, stage, or prod."
+  }
+}
