@@ -21,3 +21,7 @@ variable "environment" {
     error_message = "Choose dev, stage, or prod."
   }
 }
+variable "region" {
+  type    = string
+  default = "us-central1"
+}
