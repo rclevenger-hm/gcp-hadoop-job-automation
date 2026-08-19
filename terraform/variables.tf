@@ -25,3 +25,7 @@ variable "region" {
   type    = string
   default = "us-central1"
 }
+variable "firestore_location" {
+  type    = string
+  default = "us-central1"
+}
