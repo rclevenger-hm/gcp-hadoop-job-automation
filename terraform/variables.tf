@@ -29,3 +29,10 @@ variable "firestore_location" {
   type    = string
   default = "us-central1"
 }
+variable "notification_email" {
+  type = string
+  validation {
+    condition     = can(regex("^[^@ ]+@[^@ ]+\\.[^@ ]+$", var.notification_email))
+    error_message = "Provide an operational notification email."
+  }
+}
