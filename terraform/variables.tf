@@ -36,3 +36,10 @@ variable "notification_email" {
     error_message = "Provide an operational notification email."
   }
 }
+variable "billing_account" {
+  type = string
+  validation {
+    condition     = can(regex("^[A-Z0-9]{6}-[A-Z0-9]{6}-[A-Z0-9]{6}$", var.billing_account))
+    error_message = "Provide the billing account ID for a project-filtered budget."
+  }
+}
