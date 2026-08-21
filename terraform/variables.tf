@@ -43,3 +43,11 @@ variable "billing_account" {
     error_message = "Provide the billing account ID for a project-filtered budget."
   }
 }
+variable "monthly_budget" {
+  type    = number
+  default = 100
+  validation {
+    condition     = var.monthly_budget >= 1 && floor(var.monthly_budget) == var.monthly_budget
+    error_message = "Use a positive whole budget amount in the billing account currency."
+  }
+}
