@@ -51,3 +51,11 @@ variable "monthly_budget" {
     error_message = "Use a positive whole budget amount in the billing account currency."
   }
 }
+variable "budget_currency" {
+  type    = string
+  default = "USD"
+  validation {
+    condition     = can(regex("^[A-Z]{3}$", var.budget_currency))
+    error_message = "Use the billing account ISO currency code."
+  }
+}
