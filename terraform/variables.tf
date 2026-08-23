@@ -83,3 +83,12 @@ variable "retention_days" {
     error_message = "Retention must be 1–365 whole days."
   }
 }
+variable "maximum_instances" {
+  type    = number
+  default = 5
+  validation {
+    condition     = var.maximum_instances >= 1 && var.maximum_instances <= 20 && floor(var.maximum_instances) == var.maximum_instances
+    error_message = "Use a bounded scale ceiling of 1–20 instances per API/worker."
+  }
+}
+
