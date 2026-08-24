@@ -92,3 +92,27 @@ variable "maximum_instances" {
   }
 }
 
+variable "cluster_profiles" {
+  description = "Existing clusters, service account consumers, and canonical URI directory allowlists."
+  type = map(object({
+    cluster_name    = string
+    allowed_callers = set(string)
+    jar_prefixes    = list(string)
+    input_prefixes  = list(string)
+    output_prefixes = list(string)
+    log_prefixes    = list(string)
+  }))
+  validation {
+    condition = length(var.cluster_profiles) >= 1 && length(var.cluster_profiles) <= 5 && length(jsonencode(var.cluster_profiles)) <= 16000 && alltrue([
+      for name, p in var.cluster_profiles :
+      can(regex("^[a-z][a-z0-9-]{2,39}$", name)) && can(regex("^[a-z][a-z0-9-]{0,49}[a-z0-9]$", p.cluster_name)) && length(p.allowed_callers) > 0 &&
+      alltrue([for email in p.allowed_callers : can(regex("^[a-z0-9-]+@[a-z0-9-]+\\.iam\\.gserviceaccount\\.com$", email))]) &&
+      alltrue([for paths in [p.jar_prefixes, p.input_prefixes, p.output_prefixes, p.log_prefixes] : length(paths) > 0]) &&
+      alltrue([for uri in concat(p.jar_prefixes, p.log_prefixes) : can(regex("^gs://[a-z0-9][a-z0-9._-]+[a-z0-9]/.*$", uri))]) &&
+      alltrue([for uri in concat(p.jar_prefixes, p.input_prefixes, p.output_prefixes, p.log_prefixes) :
+        can(regex("^(gs://[a-z0-9][a-z0-9._-]+[a-z0-9]/|hdfs://[^/]*/).*/$", uri)) &&
+      !can(regex("[?*#%\\\\\\s]", uri)) && !can(regex("/\\.{1,2}/", uri))])
+    ])
+    error_message = "Provide 1–5 bounded, explicit cluster profiles with service account callers and canonical directory prefixes ending in /."
+  }
+}
