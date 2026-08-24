@@ -1,0 +1,103 @@
+openapi: 3.1.0
+info:
+  title: GCP Hadoop Job Automation
+  version: 1.0.0
+  description: Private Google service-account ID tokens plus Cloud Run IAM. Use both Authorization and X-Serverless-Authorization headers with the canonical function audience.
+security:
+  - GoogleIdToken: []
+paths:
+  /jobs:
+    post:
+      summary: Admit an asynchronous Hadoop job
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: {type: string, pattern: '^[A-Za-z0-9._:-]{8,128}$'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/JobRequest'}
+      responses:
+        '202': {description: Persisted and queued}
+        '200': {description: Same-key same-payload replay}
+        '400': {description: Invalid job inputs}
+        '401': {description: Invalid token}
+        '403': {description: Unauthorized profile or URI prefix}
+        '409': {description: Key conflict or expired key awaiting deletion}
+        '413': {description: Body over 64 KiB}
+        '415': {description: JSON required}
+        '429': {description: Daily or minute allowance exhausted}
+        '503': {description: Temporary dependency failure; replay with the same key}
+    get:
+      summary: List this identity's retained jobs, newest first
+      parameters:
+        - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
+        - {in: query, name: cursor, schema: {type: string, maxLength: 2048}}
+        - {in: query, name: status, schema: {$ref: '#/components/schemas/Status'}}
+      responses:
+        '200': {description: Jobs and nullable next_cursor}
+  /jobs/{job_id}:
+    parameters:
+      - {$ref: '#/components/parameters/JobId'}
+    get:
+      summary: Read this identity's persisted job status
+      responses:
+        '200': {description: Persisted job summary}
+        '404': {description: Unknown, expired, or owned by another identity}
+  /jobs/{job_id}/cancel:
+    parameters:
+      - {$ref: '#/components/parameters/JobId'}
+    post:
+      summary: Persist cancellation intent
+      responses:
+        '202': {description: Awaiting remote cancellation confirmation}
+        '200': {description: Already cancelled or cancelled before the first dispatch}
+        '409': {description: Already terminal or concurrent state change}
+  /jobs/{job_id}/logs:
+    parameters:
+      - {$ref: '#/components/parameters/JobId'}
+    get:
+      summary: Read a bounded Dataproc driver output segment
+      parameters:
+        - {in: query, name: stream, schema: {type: string, enum: [driver], default: driver}}
+        - {in: query, name: segment, schema: {type: integer, minimum: 0, maximum: 999999, default: 0}}
+        - {in: query, name: offset, schema: {type: integer, minimum: 0, maximum: 104857600, default: 0}}
+        - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 65536, default: 16384}}
+      responses:
+        '200': {description: Text, byte offset, segment, truncation flag and nullable next_offset}
+        '404': {description: Driver output not uploaded or job unavailable}
+        '409': {description: Remote identity mismatch; operator review required}
+  /usage:
+    get:
+      summary: Read this identity's UTC-day admissions and allowance
+      responses:
+        '200': {description: Date, jobs and limit}
+components:
+  securitySchemes:
+    GoogleIdToken: {type: http, scheme: bearer, bearerFormat: JWT}
+  parameters:
+    JobId:
+      in: path
+      name: job_id
+      required: true
+      schema: {type: string, pattern: '^[a-f0-9]{64}$'}
+  schemas:
+    Status:
+      type: string
+      enum: [QUEUED, SUBMITTING, SUBMISSION_UNKNOWN, SUBMITTED, RUNNING, CANCEL_REQUESTED, SUCCEEDED, FAILED, CANCELLED, NEEDS_REVIEW]
+    JobRequest:
+      type: object
+      additionalProperties: false
+      required: [profile, jar_path, job_class, input_path, output_path]
+      properties:
+        profile: {type: string, maxLength: 40}
+        jar_path: {type: string, maxLength: 4096, description: Approved GCS JAR URI}
+        job_class: {type: string, maxLength: 4096}
+        input_path: {type: string, maxLength: 4096, description: Approved GCS or HDFS URI}
+        output_path: {type: string, maxLength: 4096, description: Approved output directory}
+        arguments:
+          type: array
+          maxItems: 20
+          items: {type: string, maxLength: 1024}
