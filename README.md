@@ -23,3 +23,18 @@ terraform -chdir=terraform test
 
 CI uses Python 3.13 and Terraform 1.13.5. Local Python 3.12 is also supported. Tests use local fakes and SDK protobuf validation; they do not start a cluster or execute a Hadoop job.
 
+## Submit a job
+
+After [deployment](docs/DEPLOYMENT.md), customize the examples and authenticate using an allowed service account:
+
+```bash
+python scripts/client.py --url "$API_URL" --impersonate "$CALLER_SERVICE_ACCOUNT" \
+  submit --file examples/job.json --key wordcount-2026-001
+python scripts/client.py --url "$API_URL" --impersonate "$CALLER_SERVICE_ACCOUNT" history
+python scripts/client.py --url "$API_URL" --impersonate "$CALLER_SERVICE_ACCOUNT" get "$JOB_ID"
+python scripts/client.py --url "$API_URL" --impersonate "$CALLER_SERVICE_ACCOUNT" logs "$JOB_ID"
+python scripts/client.py --url "$API_URL" --impersonate "$CALLER_SERVICE_ACCOUNT" cancel "$JOB_ID"
+```
+
+A new admission returns HTTP 202. A same-key replay returns 200 without consuming another daily job unit. Use the same key after a transport error; a different key requests a different job. Choose a fresh output directory for each logical run.
+
