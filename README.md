@@ -38,3 +38,9 @@ python scripts/client.py --url "$API_URL" --impersonate "$CALLER_SERVICE_ACCOUNT
 
 A new admission returns HTTP 202. A same-key replay returns 200 without consuming another daily job unit. Use the same key after a transport error; a different key requests a different job. Choose a fresh output directory for each logical run.
 
+## Recovery semantics
+
+Firestore persists a native Dataproc request UUID and a unique job ID before dispatch. Ambiguous submissions are looked up by that exact job ID, verified against their submission label and Hadoop inputs, and may retry with the **same IDs**, at most five attempts within 24 hours. Once attached, the immutable remote job UUID fences later reads. Cancellation intent survives concurrent submission.
+
+`NEEDS_REVIEW` stops automation when an outcome cannot be established. It does **not** prove that a remote job stopped or failed. The service does not promise exactly-once Hadoop side effects; see [architecture](docs/ARCHITECTURE.md).
+
