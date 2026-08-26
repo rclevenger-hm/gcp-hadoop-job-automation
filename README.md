@@ -50,3 +50,16 @@ Terraform provisions three IAM-private functions, separate runtime identities, a
 
 Deployment is manual through the OIDC workflow or Terraform. Publication and CI do not deploy cloud resources or run billable Hadoop jobs.
 
+## Documentation
+
+- [OCI and AWS comparison](docs/PARITY.md)
+- [API reference](docs/API.md) and [OpenAPI](openapi.yaml)
+- [State and recovery model](docs/ARCHITECTURE.md)
+- [Deployment and identity setup](docs/DEPLOYMENT.md)
+- [Security boundaries](docs/SECURITY.md)
+- [Operations and incident recovery](docs/OPERATIONS.md)
+- [Costs and limits](docs/COSTS.md)
+- [Validation scope](docs/VALIDATION.md)
+- [Future improvements](docs/ROADMAP.md)
+
+MIT licensed. See [NOTICE](NOTICE) for provenance and reconstructed commit-date context.
