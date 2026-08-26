@@ -44,3 +44,9 @@ Firestore persists a native Dataproc request UUID and a unique job ID before dis
 
 `NEEDS_REVIEW` stops automation when an outcome cannot be established. It does **not** prove that a remote job stopped or failed. The service does not promise exactly-once Hadoop side effects; see [architecture](docs/ARCHITECTURE.md).
 
+## Included infrastructure
+
+Terraform provisions three IAM-private functions, separate runtime identities, a protected Firestore database and indexes, authenticated Pub/Sub push with dead letters, minute reconciliation, private source storage, alerting, and a project-filtered billing budget. It binds narrow Dataproc permissions to a dedicated project and object-read access to approved log prefixes. Existing clusters, JARs, input/output buckets, and their runtime permissions remain prerequisites.
+
+Deployment is manual through the OIDC workflow or Terraform. Publication and CI do not deploy cloud resources or run billable Hadoop jobs.
+
