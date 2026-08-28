@@ -33,3 +33,8 @@ Use `stream=driver`, `segment=0`, `offset=0`, `limit=16384`. Segments correspond
 
 A nullable `next_offset` advances within a segment. At the current end, output can still grow; retry later or inspect the next segment. Missing uploads return 404 `LOG_NOT_READY`. Byte boundaries can split UTF-8 characters, which are replaced in the returned text. Access to YARN/container logs is outside this API.
 
+## Errors and replay
+
+Errors contain stable `code`, sanitized `error`, and usually a request ID. 400 means invalid input; 401 invalid identity; 403 unauthorized profile/prefix; 404 missing, expired, or unowned record; 409 conflicting key, terminal state or remote identity mismatch; 413 oversized body; 415 unsupported media type; 429 quota; 503 dependency failure.
+
+A 503 can occur after durable admission. Retry submission with the original key and payload. Minute quota errors include `Retry-After: 60`; daily quota errors indicate seconds until UTC midnight. Replays do not consume new daily admissions but still count toward the request rate limit.
