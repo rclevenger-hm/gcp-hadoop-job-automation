@@ -27,3 +27,9 @@ Approved directory prefixes end in `/`; prefix matching is case sensitive and do
 
 Summaries include logical ID, profile, state, timestamps, native Dataproc ID and available cancellation/review fields. Request contents, internal profiles, email addresses, and native SDK errors are not returned. Status is a persisted observation and can lag native execution by polling and backlog delay.
 
+## Logs
+
+Use `stream=driver`, `segment=0`, `offset=0`, `limit=16384`. Segments correspond to Dataproc's `.000000000`, `.000000001`, and subsequent driver objects. Maximum read size is 65,536 bytes plus one byte used to determine truncation. Maximum offset is 100 MiB and segment is 999,999. GCS reads use raw byte ranges and never decompress an entire object.
+
+A nullable `next_offset` advances within a segment. At the current end, output can still grow; retry later or inspect the next segment. Missing uploads return 404 `LOG_NOT_READY`. Byte boundaries can split UTF-8 characters, which are replaced in the returned text. Access to YARN/container logs is outside this API.
+
