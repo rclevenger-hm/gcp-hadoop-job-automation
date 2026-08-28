@@ -14,3 +14,16 @@ Body limit: 65,536 bytes. Each primary job field: at most 4,096 characters. Argu
 
 Approved directory prefixes end in `/`; prefix matching is case sensitive and does not decode percent escapes. GCS is required for JARs and driver output. Inputs/outputs can use configured GCS or HDFS prefixes. Java arguments are passed as SDK data without invoking a shell.
 
+## Routes and responses
+
+| Method and path | Result |
+|---|---|
+| `POST /jobs` | 202 new admission; 200 replay |
+| `GET /jobs?limit=20&status=RUNNING&cursor=...` | Owned retained jobs and `next_cursor` |
+| `GET /jobs/{job_id}` | Persisted owned job summary |
+| `POST /jobs/{job_id}/cancel` | 202 pending remote cancellation; 200 cancelled before first attempt or already cancelled |
+| `GET /jobs/{job_id}/logs` | Bounded GCS driver output |
+| `GET /usage` | UTC date, admitted jobs, daily limit |
+
+Summaries include logical ID, profile, state, timestamps, native Dataproc ID and available cancellation/review fields. Request contents, internal profiles, email addresses, and native SDK errors are not returned. Status is a persisted observation and can lag native execution by polling and backlog delay.
+
