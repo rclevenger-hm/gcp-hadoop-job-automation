@@ -12,3 +12,9 @@ All jobs run on existing Dataproc clusters in the configured project and region.
 
 A random UUID is created outside the transaction callback and persisted as `submission_id`. The Dataproc job ID includes a service prefix, a portion of the logical ID, and that UUID. If a terminal record is eventually deleted by TTL, reusing its key receives a new native identity. Before physical deletion, an expired record returns `EXPIRED_KEY` and callers must choose a fresh key.
 
+## State transitions
+
+Normal flow is `QUEUED → SUBMITTING → SUBMITTED → RUNNING → SUCCEEDED/FAILED`. Dataproc can complete between polls, so intermediate states may be skipped. A pre-dispatch cancellation with zero attempts becomes `CANCELLED`; later cancellation records `CANCEL_REQUESTED` until Dataproc confirms its terminal state. A successful completion can win a cancellation race.
+
+Ambiguous submissions become `SUBMISSION_UNKNOWN`. After a 120-second grace period, reconciliation performs exact-ID lookup. A matching result attaches the remote UUID. A missing unconfirmed result can return to `QUEUED` with the same request UUID and job ID, at most five attempts within the original 24-hour admission window. No retry generates a new native identity. Cancelled ambiguous jobs are searched but never resubmitted.
+
