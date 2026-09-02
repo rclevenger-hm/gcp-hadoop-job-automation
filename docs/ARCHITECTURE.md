@@ -18,3 +18,9 @@ Normal flow is `QUEUED → SUBMITTING → SUBMITTED → RUNNING → SUCCEEDED/FA
 
 Ambiguous submissions become `SUBMISSION_UNKNOWN`. After a 120-second grace period, reconciliation performs exact-ID lookup. A matching result attaches the remote UUID. A missing unconfirmed result can return to `QUEUED` with the same request UUID and job ID, at most five attempts within the original 24-hour admission window. No retry generates a new native identity. Cancelled ambiguous jobs are searched but never resubmitted.
 
+## Remote identity and uncertainty
+
+Before trusting any remote result, the adapter checks project, native job ID, cluster name, submission label, JAR URI, main class, and arguments. After the first attachment it additionally checks `job_uuid`, because native job IDs can be reused over time. A mismatch or disappearance of a previously attached job becomes `NEEDS_REVIEW`. No matching-job list scan or heuristic adoption occurs.
+
+Dataproc documents request-ID deduplication but does not specify an unlimited deduplication lifetime. Native IDs, bounded retries, and UUID fencing reduce duplicate risk; they do not guarantee exactly-once application effects. Jobs must make output handling safe, and operators must not delete/recreate remote IDs while automation is active. Dataproc cancellation is addressed by job ID, so deletion/recreation between verification and cancellation remains an administrative race; runtime roles cannot delete jobs.
+
