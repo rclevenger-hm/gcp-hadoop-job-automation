@@ -24,3 +24,9 @@ Before trusting any remote result, the adapter checks project, native job ID, cl
 
 Dataproc documents request-ID deduplication but does not specify an unlimited deduplication lifetime. Native IDs, bounded retries, and UUID fencing reduce duplicate risk; they do not guarantee exactly-once application effects. Jobs must make output handling safe, and operators must not delete/recreate remote IDs while automation is active. Dataproc cancellation is addressed by job ID, so deletion/recreation between verification and cancellation remains an administrative race; runtime roles cannot delete jobs.
 
+## Leases and concurrency
+
+Every mutation compares the stored version in a Firestore transaction. Polling moves `next_check` forward by 120 seconds before remote calls. Concurrent cancellation changes the version so stale status writes fail. Attachment retries read the newest cancellation intent. Shard order rotates each minute, with 25 records per shard and a deadline reserve; this is a bounded control plane, not an unlimited scheduler.
+
+A queue publication failure leaves durable `QUEUED` metadata that the reconciler can re-enqueue. Pub/Sub duplicate delivery cannot claim a nonqueued job. A worker crash before or after the remote call recovers through exact lookup and the persisted native identifiers.
+
