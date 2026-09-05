@@ -30,3 +30,8 @@ Every mutation compares the stored version in a Firestore transaction. Polling m
 
 A queue publication failure leaves durable `QUEUED` metadata that the reconciler can re-enqueue. Pub/Sub duplicate delivery cannot claim a nonqueued job. A worker crash before or after the remote call recovers through exact lookup and the persisted native identifiers.
 
+## Retention and history
+
+Active jobs have no Firestore TTL. Terminal states remove the active shard key and add a retention deadline plus the Firestore `expiresOn` timestamp. API reads hide expired records immediately; physical deletion is asynchronous. `NEEDS_REVIEW` is terminal for automation and also ages out, so operators must investigate before retention expires.
+
+History filters ownership and optional status in Firestore before pagination and orders by creation timestamp plus document ID. Cursors are query-bound position markers, not authorization credentials. Ownership constraints remain in every query even if a caller constructs a cursor. Concurrent status changes can change page membership; history is not a frozen snapshot.
