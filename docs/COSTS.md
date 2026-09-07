@@ -12,3 +12,6 @@ Defaults are 100 newly admitted jobs per UTC day per subject, 60 API requests pe
 
 Source artifacts are versioned and retained; manage their older versions intentionally. Existing cluster log and output buckets are outside this stack. Firestore active records have no TTL, so investigate stalled or uncertain jobs rather than accumulating them indefinitely.
 
+## Budget notifications
+
+Terraform creates a billing budget filtered to the project with 80% actual-spend and 100% forecast thresholds. Set the billing account currency correctly. Budget notifications are delayed observations, not hard spending limits, and do not automatically cancel work. The budget includes the whole project, including the existing cluster.
