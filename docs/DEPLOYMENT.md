@@ -8,3 +8,18 @@ The cluster executes trusted approved application code under its VM service acco
 
 Create a protected, versioned GCS Terraform state bucket outside this stack. Enable Google Cloud credentials through ADC or workload identity. Deployment credentials need permission to manage the resources declared in Terraform, attach the build/runtime accounts, bind IAM, enable APIs, and create the billing budget. Runtime accounts have narrower permissions.
 
+## Local deployment
+
+```bash
+python scripts/build.py
+cp terraform/terraform.tfvars.example terraform/development.tfvars
+# Edit every placeholder; existing cluster and bucket names must be real.
+terraform -chdir=terraform init -lockfile=readonly \
+  -backend-config=bucket=YOUR_STATE_BUCKET -backend-config=prefix=hadoop/dev
+terraform -chdir=terraform plan -var-file=development.tfvars -out=deploy.tfplan
+terraform -chdir=terraform apply deploy.tfplan
+terraform -chdir=terraform output -raw api_url
+```
+
+Review the plan first. It creates the control plane, source bucket, IAM grants, database, queue, scheduler, alerts and budget. It does not create/resize/delete a Dataproc cluster. Build the `artifacts/` source directory before Terraform packaging. Cloud Build installs pinned, hashed runtime requirements on Python 3.13; no locally compiled binaries are shipped.
+
