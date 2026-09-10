@@ -31,3 +31,9 @@ Set these environment variables in GitHub: `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GC
 
 Run **Deploy GCP** manually and choose dev/stage/prod. It runs application checks, builds sources, authenticates without a stored key, validates/tests Terraform, plans/applies using remote state, and confirms anonymous API access is denied. It never submits a live Hadoop job. CI alone does not deploy.
 
+## Consumer identity
+
+For local development, run `gcloud auth application-default login` using an identity allowed to impersonate an approved consumer service account. Grant token creation only on that consumer account, and use the CLI's `--impersonate` flag. The CLI mints an ID token with email and sends the two required headers.
+
+On Google Cloud, ADC can obtain an ID token from the runtime service-account identity. That account must appear in a profile's `allowed_callers`. Ownership uses the numeric service-account subject, so deleting and recreating an account with the same email does not transfer old jobs.
+
