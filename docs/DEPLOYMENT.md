@@ -37,3 +37,11 @@ For local development, run `gcloud auth application-default login` using an iden
 
 On Google Cloud, ADC can obtain an ID token from the runtime service-account identity. That account must appear in a profile's `allowed_callers`. Ownership uses the numeric service-account subject, so deleting and recreating an account with the same email does not transfer old jobs.
 
+## Read-only acceptance check
+
+```bash
+python scripts/smoke.py --url "$API_URL" --impersonate "$CALLER_SERVICE_ACCOUNT"
+```
+
+Verify Pub/Sub's service agent has token creation on the dedicated push identity and publisher/subscriber grants for dead-letter forwarding. Verify Scheduler can invoke reconciliation, Firestore indexes are ready, and notification emails are confirmed. These are provisioned by Terraform but live deployment remains the final integration check.
+
