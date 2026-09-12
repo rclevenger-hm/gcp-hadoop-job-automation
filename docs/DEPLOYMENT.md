@@ -45,3 +45,8 @@ python scripts/smoke.py --url "$API_URL" --impersonate "$CALLER_SERVICE_ACCOUNT"
 
 Verify Pub/Sub's service agent has token creation on the dedicated push identity and publisher/subscriber grants for dead-letter forwarding. Verify Scheduler can invoke reconciliation, Firestore indexes are ready, and notification emails are confirmed. These are provisioned by Terraform but live deployment remains the final integration check.
 
+## Upgrades and rollback
+
+Keep the same service prefix, project, region and Firestore database while jobs are active. Profiles are snapshotted for admitted jobs, but SDK project/region come from runtime configuration. Do not repoint them during active execution. Change infrastructure in a reviewed plan, preserve state, and deploy a previously verified source revision to roll back code.
+
+Firestore deletion protection and `ABANDON` prevent accidental database destruction through normal stack teardown. Source-bucket force deletion is disabled. A deliberate retirement must first reconcile remote jobs, preserve needed records, and separately remove retained resources.
