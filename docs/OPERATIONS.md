@@ -16,3 +16,9 @@ For `NEEDS_REVIEW`, inspect the recorded profile/request, native ID, submission 
 
 Cancellation before any dispatch is immediate. Otherwise the API records intent and reconciliation calls Dataproc cancellation after verifying remote identity. Native completion may win. Missing or mismatched remote jobs require review rather than cancellation of an unverified replacement. Check the cluster when cancellation cannot be confirmed.
 
+## Queue and dead letters
+
+A publish failure leaves a durable queued record for reconciliation. Duplicate Pub/Sub messages are harmless because dispatch requires a versioned queued-state claim. Malformed/unprocessable deliveries return a retryable status and can move to the dead-letter topic after Pub/Sub's approximate delivery-attempt threshold.
+
+Inspect dead letters before replay. Fix IAM/configuration errors first. Replaying an original tenant/job reference consults durable state and cannot start a terminal or expired job. The queue retention is one day, dead-letter retention seven days, and new dispatch expires after one day.
+
