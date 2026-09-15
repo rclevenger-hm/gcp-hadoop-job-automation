@@ -22,3 +22,9 @@ A publish failure leaves a durable queued record for reconciliation. Duplicate P
 
 Inspect dead letters before replay. Fix IAM/configuration errors first. Replaying an original tenant/job reference consults durable state and cannot start a terminal or expired job. The queue retention is one day, dead-letter retention seven days, and new dispatch expires after one day.
 
+## Logs and data retention
+
+Driver output is uploaded asynchronously in numbered GCS segments. Use byte offsets and check later when `LOG_NOT_READY` appears. YARN/container logs follow the existing cluster logging configuration. This stack does not manage lifecycle or retention of JARs, job output, driver logs, or the cluster staging bucket.
+
+Terminal metadata is visible for the configured retention period, then hidden immediately while Firestore TTL deletion catches up. Active records never expire automatically. Review uncertain terminal records before their retention expires. PITR is enabled for Firestore; recovery and replacement-database cutover require a deliberate operator procedure.
+
