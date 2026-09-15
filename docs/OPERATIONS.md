@@ -28,3 +28,8 @@ Driver output is uploaded asynchronously in numbered GCS segments. Use byte offs
 
 Terminal metadata is visible for the configured retention period, then hidden immediately while Firestore TTL deletion catches up. Active records never expire automatically. Review uncertain terminal records before their retention expires. PITR is enabled for Firestore; recovery and replacement-database cutover require a deliberate operator procedure.
 
+## Backlog and service changes
+
+The reconciler rotates through 16 hash shards with up to 25 candidates each and a time budget. Scale the deployment only after examining remote API latency, Firestore contention and scheduler overlap. Daily limits are per authenticated subject, not global project spend caps. Keep project/region/database stable with active jobs.
+
+Before removing a profile or caller, decide how its existing jobs will be observed and cancelled. Admitted jobs retain their profile snapshot, but callers removed from the global allowed email list lose API access; operators must manage those remaining jobs.
