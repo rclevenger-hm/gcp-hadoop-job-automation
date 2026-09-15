@@ -12,3 +12,7 @@ Wait for the grace period and exact native lookup. The system can retry only wit
 
 For `NEEDS_REVIEW`, inspect the recorded profile/request, native ID, submission label, Hadoop inputs and any attached `remote_uuid` before deciding whether execution occurred. This state stops automatic changes and does not imply the remote workload is stopped. Record the operator decision externally; no unsafe force-reset endpoint is provided.
 
+## Cancellation
+
+Cancellation before any dispatch is immediate. Otherwise the API records intent and reconciliation calls Dataproc cancellation after verifying remote identity. Native completion may win. Missing or mismatched remote jobs require review rather than cancellation of an unverified replacement. Check the cluster when cancellation cannot be confirmed.
+
