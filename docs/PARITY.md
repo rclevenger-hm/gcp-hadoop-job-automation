@@ -25,3 +25,6 @@ The API returns an accepted job record, not synchronous stdout/stderr. Dataproc'
 
 GCS replaces S3/OCI object URIs. HDFS input paths work on the selected existing cluster. Approved GCS JARs and a fully qualified Java main class map to `jar_file_uris` and `main_class`. The service does not offer arbitrary shell commands, local JAR uploads, cluster creation, or Dataproc Serverless batches.
 
+## Improvements over the OCI synchronous model
+
+The HTTP request can finish while the remote Hadoop job continues. Metadata survives function restarts, queue delivery duplicates, delayed log upload, and remote API timeouts. Persistent cancellation intent and operator review states make uncertain outcomes explicit. Dataproc's native request ID also permits bounded recovery of an interrupted submission without generating new IDs.
