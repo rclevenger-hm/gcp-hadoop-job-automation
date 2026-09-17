@@ -19,3 +19,9 @@ The OCI baseline reviewed is commit `af9ac91b845aa1b8b709d1fdf74b58dc3cdeadde`. 
 | Logs | Concurrent stdout/stderr, each bounded to 1 MiB | Bounded S3 step streams | Bounded segmented GCS driver output |
 | Infrastructure | OCI-specific resources | AWS Terraform | GCP Terraform, OIDC, alerts, budgets |
 
+## Deliberate platform differences
+
+The API returns an accepted job record, not synchronous stdout/stderr. Dataproc's driver output is exposed as `stream=driver`; independent YARN/container stderr remains in the cluster's configured logging system. No claim is made that Dataproc driver output contains every container log.
+
+GCS replaces S3/OCI object URIs. HDFS input paths work on the selected existing cluster. Approved GCS JARs and a fully qualified Java main class map to `jar_file_uris` and `main_class`. The service does not offer arbitrary shell commands, local JAR uploads, cluster creation, or Dataproc Serverless batches.
+
