@@ -16,3 +16,9 @@ Worker and reconciler trust only their platform-authenticated service identities
 
 No runtime may create/delete a cluster or delete a Dataproc job. Dataproc grants and `roles/datastore.user` are project scoped; application profiles enforce allowed cluster names and tenant records. This is not IAM-level per-cluster or per-tenant isolation. Use a dedicated project or separate deployments for stronger isolation. The build identity is separate and uses Cloud Build's builder role plus source reads.
 
+## Artifact and data controls
+
+Only configured GCS JAR directories and input/output prefixes are admitted. Drivers run under the existing cluster VM service account and may access anything it can access. A malicious approved JAR can bypass the admission path policy internally; restrict artifact writers and use narrowly scoped cluster service accounts.
+
+Runtime API access to GCS logs grants only object get with resource-name conditions on configured prefixes. The log endpoint first verifies ownership and the remote job fingerprint. Consumers cannot specify a log URL. The API does not list buckets or expose signed download URLs.
+
