@@ -22,3 +22,9 @@ Only configured GCS JAR directories and input/output prefixes are admitted. Driv
 
 Runtime API access to GCS logs grants only object get with resource-name conditions on configured prefixes. The log endpoint first verifies ownership and the remote job fingerprint. Consumers cannot specify a log URL. The API does not list buckets or expose signed download URLs.
 
+## Bounds and observability
+
+HTTP bodies, arguments, pagination, log ranges, dispatch attempts, admission age, API rates, daily admissions, instance counts and reconciliation batches are bounded. Function infrastructure can buffer an HTTP body before application code; the 64 KiB application check is not a claim about edge-level request buffering.
+
+Structured logs include generated request IDs, status codes, exception types and hashed job IDs/state transitions. Job arguments, tokens, input data and SDK exception text are omitted. Driver logs returned to authorized owners may contain application-sensitive content, so treat them accordingly.
+
