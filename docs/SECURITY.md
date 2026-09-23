@@ -28,3 +28,8 @@ HTTP bodies, arguments, pagination, log ranges, dispatch attempts, admission age
 
 Structured logs include generated request IDs, status codes, exception types and hashed job IDs/state transitions. Job arguments, tokens, input data and SDK exception text are omitted. Driver logs returned to authorized owners may contain application-sensitive content, so treat them accordingly.
 
+## Remaining operational risks
+
+Native request-ID deduplication is not an unlimited exactly-once guarantee. Administrative deletion/recreation of remote jobs can race verification; runtime roles cannot perform those deletions. Protect Firestore, deployment credentials, approved artifacts and cluster administrators. Terraform budgets send notifications and do not cap spend or stop a running cluster.
+
+Report vulnerabilities privately to the repository owner before publishing sensitive reproduction details. Include the affected component, expected boundary, and a minimal test with no credentials.
