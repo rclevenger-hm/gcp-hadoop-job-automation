@@ -6,3 +6,9 @@ The Python test suite exercises validation, JWT signature/claim verification, tr
 
 Firestore transaction tests use an atomic in-memory fake with rollback-on-error behavior. SDK query cursors and Dataproc requests are also constructed with the real client libraries. These tests do not claim to replace integration testing against a live Firestore database or Dataproc cluster.
 
+## CI gates
+
+CI installs hashed Python dependencies, runs Ruff and pytest, audits runtime packages, checks API/example/entry-point/Terraform contracts, stages the source artifact, and imports all entry points using an isolated production dependency environment. A second job validates Terraform and runs mocked plans for secure defaults, rejected negative quota, and rejected public consumers.
+
+Terraform provider versions are locked. Mock plans verify configuration, not provider API acceptance in a real project. The manual deploy workflow repeats the checks before applying and verifies anonymous access is denied after deployment.
+
