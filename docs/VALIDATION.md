@@ -12,3 +12,8 @@ CI installs hashed Python dependencies, runs Ruff and pytest, audits runtime pac
 
 Terraform provider versions are locked. Mock plans verify configuration, not provider API acceptance in a real project. The manual deploy workflow repeats the checks before applying and verifies anonymous access is denied after deployment.
 
+## Live acceptance still required
+
+Run the read-only smoke script after deployment, verify function service identities and indexes, and inspect scheduler and Pub/Sub delivery. A real Hadoop acceptance test requires an explicitly approved existing cluster, known JAR/input fixture, unique output directory, and billing authorization. Confirm remote success, cancellation and driver-output retrieval before production use.
+
+Repository publication performs no deployment and no live Hadoop execution. Passing CI demonstrates local behavior and infrastructure consistency, not measured production performance or a guaranteed execution outcome.
