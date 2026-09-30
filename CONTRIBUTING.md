@@ -8,3 +8,6 @@ Use Python 3.13, an isolated environment, and the hashed development requirement
 
 Preserve tenant ownership, transaction read-before-write rules, CAS version checks, and stable native IDs across ambiguous retries. Add meaningful regression tests for cancellation or recovery changes. Keep API, examples, profile validation and Terraform variables consistent. Do not claim exactly-once Hadoop side effects.
 
+## Cloud changes
+
+Use a reviewed plan against remote state and OIDC credentials. Do not commit credentials, state, live payloads, or build output. Live integration tests are separate from ordinary CI and require an explicitly selected test project and workload.
