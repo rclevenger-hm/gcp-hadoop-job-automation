@@ -1,0 +1,11 @@
+GCP Hadoop Job Automation
+Copyright (c) 2026 Roger Clevenger
+
+Derived in design and portions of validation/control-plane code from the MIT-licensed
+rclevenger-hm/oci-hadoop-job-automation and rclevenger-hm/aws-hadoop-job-automation repositories.
+The original copyright and permission notice is retained in LICENSE.
+
+The April–September 2026 Git chronology was reconstructed during repository creation
+in October 2026. Those author/committer timestamps represent an organized retrospective
+sequence of real file changes, not evidence that development occurred on those dates.
+Bootstrap, import, and repository maintenance commits retain their actual dates.

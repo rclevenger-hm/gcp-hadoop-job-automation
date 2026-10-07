@@ -1,0 +1,8 @@
+{
+  "profile": "analytics",
+  "jar_path": "gs://your-artifacts/approved/wordcount.jar",
+  "job_class": "org.example.WordCount",
+  "input_path": "gs://your-data/input/books/",
+  "output_path": "gs://your-data/output/wordcount-unique-run/",
+  "arguments": []
+}

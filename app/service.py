@@ -1,0 +1,137 @@
+from app.dataproc import RemoteMismatch
+from app.validation import ApiError, TERMINAL, identifier, job_request, key_id
+
+
+def public(job):
+    fields = ['job_id', 'status', 'created_at', 'updated_at', 'dataproc_job_id', 'cancel_requested', 'cancel_accepted', 'reason', 'expires_at']
+    return {**{k: job[k] for k in fields if k in job}, 'profile': job['request']['profile']}
+
+
+class Service:
+    def __init__(self, store, dataproc, profiles, prefix):
+        self.store, self.dataproc, self.profiles, self.prefix = store, dataproc, profiles, prefix
+
+    def submit(self, caller, key, payload):
+        request = job_request(payload, self.profiles, caller)
+        job_id = key_id(key, caller.tenant)
+        job, created = self.store.create(caller.tenant, job_id, request, self.profiles[request['profile']], self.prefix)
+        if job['status'] == 'QUEUED':
+            self.store.enqueue(job)
+        return public(job), created
+
+    def owned(self, caller, job_id):
+        job = self.store.get(caller.tenant, identifier(job_id))
+        if not job:
+            raise ApiError(404, 'NOT_FOUND', 'Job not found')
+        return job
+
+    def cancel(self, caller, job_id):
+        for _ in range(4):
+            job = self.owned(caller, job_id)
+            if job['status'] == 'CANCELLED' or job.get('cancel_requested'):
+                return public(job)
+            if job['status'] in TERMINAL:
+                raise ApiError(409, 'ALREADY_FINISHED', 'This job is no longer accepting cancellation')
+            safe = job['status'] == 'QUEUED' and job['attempts'] == 0
+            updated = self.store.replace(job, status='CANCELLED' if safe else 'CANCEL_REQUESTED', cancel_requested=True, next_check=self.store.now())
+            if updated:
+                return public(updated)
+        raise ApiError(409, 'STATE_CHANGED', 'Job changed concurrently; retry the request')
+
+    def attach(self, tenant, job_id, remote=None, reason='SUBMISSION_OUTCOME_UNKNOWN'):
+        for _ in range(5):
+            job = self.store.get(tenant, job_id)
+            if not job or job['status'] in TERMINAL or job.get('remote_uuid'):
+                return
+            changes = {'next_check': self.store.now() + 120}
+            if remote is not None:
+                self.dataproc.verify(job, remote)
+                changes.update(remote_uuid=remote.job_uuid, status='CANCEL_REQUESTED' if job.get('cancel_requested') else 'SUBMITTED', reason='')
+            else:
+                changes.update(status='CANCEL_REQUESTED' if job.get('cancel_requested') else 'SUBMISSION_UNKNOWN', reason=reason)
+            if self.store.replace(job, **changes):
+                return
+        raise RuntimeError('Concurrent updates prevented attachment; reconciliation will retry')
+
+    def expire_queued(self, job):
+        if self.store.now() - job['created_at'] < 86400:
+            return False
+        self.store.replace(job, status='NEEDS_REVIEW' if job['attempts'] else 'FAILED', reason='ADMISSION_WINDOW_EXPIRED')
+        return True
+
+    def process(self, message):
+        tenant, job_id = identifier(message.get('tenant')), identifier(message.get('job_id'))
+        job = self.store.get(tenant, job_id)
+        if not job or job['status'] != 'QUEUED' or self.expire_queued(job):
+            return
+        job = self.store.replace(job, status='SUBMITTING', submitted_at=self.store.now(), attempts=job['attempts'] + 1, next_check=self.store.now() + 120)
+        if not job:
+            return
+        try:
+            remote = self.dataproc.submit(job)
+        except RemoteMismatch:
+            self.review(tenant, job_id, 'REMOTE_IDENTITY_MISMATCH')
+            return
+        except Exception:
+            self.attach(tenant, job_id)
+            return
+        self.attach(tenant, job_id, remote)
+
+    def review(self, tenant, job_id, reason):
+        for _ in range(5):
+            job = self.store.get(tenant, job_id)
+            if not job or job['status'] in TERMINAL:
+                return
+            if self.store.replace(job, status='NEEDS_REVIEW', reason=reason):
+                return
+        raise RuntimeError('Concurrent updates prevented review marker')
+
+    def reconcile_one(self, tenant, job_id):
+        job = self.store.claim_poll(tenant, job_id)
+        if not job:
+            return
+        if job['status'] == 'QUEUED':
+            if not self.expire_queued(job):
+                self.store.enqueue(job)
+            return
+        if not job.get('remote_uuid') and self.store.now() - job.get('submitted_at', job['created_at']) < 120:
+            return
+        try:
+            remote = self.dataproc.get(job)
+            if remote is None:
+                if job.get('remote_uuid'):
+                    self.review(tenant, job_id, 'REMOTE_JOB_MISSING')
+                elif job['attempts'] >= 5 or self.store.now() - job['created_at'] >= 86400:
+                    self.review(tenant, job_id, 'NO_REMOTE_JOB_OUTCOME_UNKNOWN')
+                elif not job.get('cancel_requested'):
+                    updated = self.store.replace(job, status='QUEUED', reason='RETRY_WITH_SAME_NATIVE_IDS', next_check=self.store.now() + 120)
+                    if updated:
+                        self.store.enqueue(updated)
+                return
+            if not job.get('remote_uuid'):
+                self.attach(tenant, job_id, remote)
+                job = self.store.get(tenant, job_id)
+            state = self.dataproc.state(remote)
+            changes = {'status': state}
+            if job.get('cancel_requested') and state not in TERMINAL:
+                changes.update(status='CANCEL_REQUESTED', cancel_accepted=self.dataproc.cancel(job))
+            self.store.replace(job, **changes)
+        except RemoteMismatch:
+            self.review(tenant, job_id, 'REMOTE_IDENTITY_MISMATCH')
+
+    def reconcile(self, remaining_ms=lambda: 120000):
+        processed, failed = 0, 0
+        start = (self.store.now() // 60) % 16
+        for offset in range(16):
+            if remaining_ms() < 35000:
+                break
+            shard = format((start + offset) % 16, 'x')
+            for job in self.store.due(shard):
+                if remaining_ms() < 35000:
+                    return {'processed': processed, 'failed': failed}
+                try:
+                    self.reconcile_one(job['tenant'], job['job_id'])
+                    processed += 1
+                except Exception:
+                    failed += 1
+        return {'processed': processed, 'failed': failed}

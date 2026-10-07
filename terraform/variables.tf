@@ -1,0 +1,118 @@
+variable "project_id" {
+  type = string
+  validation {
+    condition     = can(regex("^[a-z][a-z0-9-]{4,28}[a-z0-9]$", var.project_id))
+    error_message = "Use an existing GCP project ID."
+  }
+}
+variable "name" {
+  type    = string
+  default = "hadoop"
+  validation {
+    condition     = can(regex("^[a-z][a-z0-9-]{3,11}$", var.name))
+    error_message = "Use 4–12 lowercase letters, digits, or hyphens, starting with a letter."
+  }
+}
+variable "environment" {
+  type    = string
+  default = "dev"
+  validation {
+    condition     = contains(["dev", "stage", "prod"], var.environment)
+    error_message = "Choose dev, stage, or prod."
+  }
+}
+variable "region" {
+  type    = string
+  default = "us-central1"
+}
+variable "firestore_location" {
+  type    = string
+  default = "us-central1"
+}
+variable "notification_email" {
+  type = string
+  validation {
+    condition     = can(regex("^[^@ ]+@[^@ ]+\\.[^@ ]+$", var.notification_email))
+    error_message = "Provide an operational notification email."
+  }
+}
+variable "billing_account" {
+  type = string
+  validation {
+    condition     = can(regex("^[A-Z0-9]{6}-[A-Z0-9]{6}-[A-Z0-9]{6}$", var.billing_account))
+    error_message = "Provide the billing account ID for a project-filtered budget."
+  }
+}
+variable "monthly_budget" {
+  type    = number
+  default = 100
+  validation {
+    condition     = var.monthly_budget >= 1 && floor(var.monthly_budget) == var.monthly_budget
+    error_message = "Use a positive whole budget amount in the billing account currency."
+  }
+}
+variable "budget_currency" {
+  type    = string
+  default = "USD"
+  validation {
+    condition     = can(regex("^[A-Z]{3}$", var.budget_currency))
+    error_message = "Use the billing account ISO currency code."
+  }
+}
+variable "daily_job_limit" {
+  type    = number
+  default = 100
+  validation {
+    condition     = var.daily_job_limit >= 1 && var.daily_job_limit <= 100000 && floor(var.daily_job_limit) == var.daily_job_limit
+    error_message = "Daily limit must be an integer from 1 to 100000."
+  }
+}
+variable "requests_per_minute" {
+  type    = number
+  default = 60
+  validation {
+    condition     = var.requests_per_minute >= 1 && var.requests_per_minute <= 1000 && floor(var.requests_per_minute) == var.requests_per_minute
+    error_message = "Minute limit must be an integer from 1 to 1000."
+  }
+}
+variable "retention_days" {
+  type    = number
+  default = 30
+  validation {
+    condition     = var.retention_days >= 1 && var.retention_days <= 365 && floor(var.retention_days) == var.retention_days
+    error_message = "Retention must be 1–365 whole days."
+  }
+}
+variable "maximum_instances" {
+  type    = number
+  default = 5
+  validation {
+    condition     = var.maximum_instances >= 1 && var.maximum_instances <= 20 && floor(var.maximum_instances) == var.maximum_instances
+    error_message = "Use a bounded scale ceiling of 1–20 instances per API/worker."
+  }
+}
+
+variable "cluster_profiles" {
+  description = "Existing clusters, service account consumers, and canonical URI directory allowlists."
+  type = map(object({
+    cluster_name    = string
+    allowed_callers = set(string)
+    jar_prefixes    = list(string)
+    input_prefixes  = list(string)
+    output_prefixes = list(string)
+    log_prefixes    = list(string)
+  }))
+  validation {
+    condition = length(var.cluster_profiles) >= 1 && length(var.cluster_profiles) <= 5 && length(jsonencode(var.cluster_profiles)) <= 16000 && alltrue([
+      for name, p in var.cluster_profiles :
+      can(regex("^[a-z][a-z0-9-]{2,39}$", name)) && can(regex("^[a-z][a-z0-9-]{0,49}[a-z0-9]$", p.cluster_name)) && length(p.allowed_callers) > 0 &&
+      alltrue([for email in p.allowed_callers : can(regex("^[a-z0-9-]+@[a-z0-9-]+\\.iam\\.gserviceaccount\\.com$", email))]) &&
+      alltrue([for paths in [p.jar_prefixes, p.input_prefixes, p.output_prefixes, p.log_prefixes] : length(paths) > 0]) &&
+      alltrue([for uri in concat(p.jar_prefixes, p.log_prefixes) : can(regex("^gs://[a-z0-9][a-z0-9._-]+[a-z0-9]/.*$", uri))]) &&
+      alltrue([for uri in concat(p.jar_prefixes, p.input_prefixes, p.output_prefixes, p.log_prefixes) :
+        can(regex("^(gs://[a-z0-9][a-z0-9._-]+[a-z0-9]/|hdfs://[^/]*/).*/$", uri)) &&
+      !can(regex("[?*#%\\\\\\s]", uri)) && !can(regex("/\\.{1,2}/", uri))])
+    ])
+    error_message = "Provide 1–5 bounded, explicit cluster profiles with service account callers and canonical directory prefixes ending in /."
+  }
+}

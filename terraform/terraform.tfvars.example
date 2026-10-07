@@ -1,0 +1,23 @@
+project_id = "your-project-id"
+region = "us-central1"
+firestore_location = "us-central1"
+name = "hadoop"
+environment = "dev"
+notification_email = "operations@example.com"
+billing_account = "000000-000000-000000"
+monthly_budget = 100
+budget_currency = "USD"
+daily_job_limit = 100
+requests_per_minute = 60
+retention_days = 30
+maximum_instances = 5
+cluster_profiles = {
+  analytics = {
+    cluster_name = "analytics-cluster"
+    allowed_callers = ["hadoop-consumer@your-project-id.iam.gserviceaccount.com"]
+    jar_prefixes = ["gs://your-artifacts/approved/"]
+    input_prefixes = ["gs://your-data/input/", "hdfs:///data/input/"]
+    output_prefixes = ["gs://your-data/output/"]
+    log_prefixes = ["gs://your-staging/google-cloud-dataproc-metainfo/"]
+  }
+}
