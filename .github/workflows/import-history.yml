@@ -22,11 +22,11 @@ jobs:
       - name: Verify and import complete local history
         run: |
           base64 --decode .github/import/history.bundle.b64 > "$RUNNER_TEMP/history.bundle"
-          echo "fa8d6679ee4630bb80dec581c79ccc6eb9637e97b15f07177a25aea936f5e0c5  $RUNNER_TEMP/history.bundle" | sha256sum --check
+          echo "23357068f2adaec36cd06c0a8c5ec8843c02f04c5a3dbc845b000fc6776014e7  $RUNNER_TEMP/history.bundle" | sha256sum --check
           git bundle verify "$RUNNER_TEMP/history.bundle"
           git fetch "$RUNNER_TEMP/history.bundle" main:refs/heads/imported-history
-          test "$(git rev-parse imported-history)" = 7e7c94c9a8c93d2e0399f4c3010e4fb90bf620b6
-          test "$(git rev-parse imported-history^{tree})" = 07beae63642766d816257790b19fb653187ca347
+          test "$(git rev-parse imported-history)" = 6de678eca245563ab02e1bc1c02a34036710fb8e
+          test "$(git rev-parse imported-history^{tree})" = 6959a3e2787cff0f69509b84ceca7bbb980b2c2b
           git checkout imported-history
           git config user.name 'Roger Clevenger'
           git config user.email '70983614+rclevenger-hm@users.noreply.github.com'
